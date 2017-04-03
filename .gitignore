@@ -1,1 +1,8 @@
 data
+.idea/encodings.xml
+.idea/inspectionProfiles/
+.idea/keyframe.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/workspace.xml
+*.pyc
