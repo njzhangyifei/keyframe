@@ -59,16 +59,6 @@ class VideoWidget(QWidget):
         sharpness = (np.sum(filtered_y ** 2)
                      + np.sum(filtered_x ** 2)) / float(height * width * 2)
 
-        # sobel_x = cv2.Sobel(frame_gray, cv2.CV_64F, 1, 0)
-        # sobel_y = cv2.Sobel(frame_gray, cv2.CV_64F, 0, 1)
-        # laplacian = cv2.Laplacian(frame_gray, cv2.CV_64F)
-        # laplacian_gray = cv2.convertScaleAbs(laplacian)
-        # laplacian_gray_rgb = cv2.cvtColor(laplacian_gray, cv2.COLOR_GRAY2RGB)
-        # sobel_x_gray = cv2.convertScaleAbs(sobel_x)
-        # sobel_y_gray = cv2.convertScaleAbs(sobel_y)
-        # sobel_x_gray_rgb = cv2.cvtColor(sobel_x_gray, cv2.COLOR_GRAY2RGB)
-        # sobel_y_gray_rgb = cv2.cvtColor(sobel_y_gray, cv2.COLOR_GRAY2RGB)
-
         font = cv2.FONT_HERSHEY_COMPLEX
         cv2.putText(frame_gray_rgb, str(self.capture.get(cv2.CAP_PROP_POS_FRAMES)),
                     (0, 40), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
