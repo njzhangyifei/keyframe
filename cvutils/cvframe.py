@@ -1,3 +1,5 @@
+from PyQt5 import QtCore
+
 import cv2
 from PyQt5.QtGui import QImage
 
@@ -7,9 +9,10 @@ class CVFrame:
         self.abs_scale_conversion = abs_scale_conversion
         self.grayscale = grayscale
         self.cv_mat = cv_mat
+        self.image = None
+        self.height, self.width = cv_mat.shape[:2]
 
-    # noinspection PyAttributeOutsideInit
-    def get_image(self):
+    def get_image(self, scaled_width=None, scaled_height=None):
         if self.image:
             return self.image
         cv_mat = self.cv_mat
@@ -23,4 +26,8 @@ class CVFrame:
             image = QImage(cv_mat.data, width, height, bytes_per_line,
                            QImage.Format_RGB888)
         self.image = image
+        if scaled_width and scaled_height:
+            return self.image.scaled(scaled_width, scaled_height,
+                                     QtCore.Qt.KeepAspectRatio)
         return self.image
+

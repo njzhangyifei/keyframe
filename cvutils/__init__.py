@@ -1,1 +1,1 @@
-from .Frame import CVFrame
+from .cvframe import CVFrame
