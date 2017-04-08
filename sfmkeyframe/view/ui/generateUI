@@ -1,0 +1,11 @@
+#!/bin/bash
+
+for file in *.ui
+do
+    echo -n " * Generating code for $file ..."
+    pyuic5 "$file" -o "${file%.*}".py
+    echo "Done"
+done
+
+echo " * All Done"
+

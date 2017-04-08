@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>685</width>
-    <height>531</height>
+    <width>1000</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,21 +26,7 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout_control">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_right">
-          <item>
-           <widget class="QPushButton" name="pushButton_pause">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="text">
-             <string>Start Update</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
+         <layout class="QHBoxLayout" name="horizontalLayout_right"/>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_left">

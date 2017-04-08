@@ -8,14 +8,24 @@ class CVFrame:
     def __init__(self, cv_mat, grayscale=False, abs_scale_conversion=False):
         self.abs_scale_conversion = abs_scale_conversion
         self.grayscale = grayscale
-        self.cv_mat = cv_mat
+        self._cv_mat = cv_mat
         self.image = None
         self.height, self.width = cv_mat.shape[:2]
+
+    @property
+    def cv_mat(self):
+        return self._cv_mat
+
+    @cv_mat.setter
+    def cv_mat(self, mat):
+        self._cv_mat = mat
+        self.image = None
+        self.height, self.width = self._cv_mat.shape[:2]
 
     def get_image(self, scaled_width=None, scaled_height=None):
         if self.image:
             return self.image
-        cv_mat = self.cv_mat
+        cv_mat = self._cv_mat
         if self.abs_scale_conversion:
             cv_mat = cv2.convertScaleAbs(cv_mat)
         height, width = cv_mat.shape[:2]

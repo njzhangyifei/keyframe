@@ -4,6 +4,8 @@ import cv2
 import numpy as np
 from PyQt5.QtWidgets import QApplication, QFileDialog
 
+import pyqtgraph as pg
+
 from cvutils import CVFrame
 from sfmkeyframe.view.VideoPlaybackWidget import VideoPlaybackWidget
 
@@ -13,6 +15,7 @@ def select_file():
     dlg.setFileMode(QFileDialog.AnyFile)
     filename, filter_type = dlg.getOpenFileNames()
     return filename
+
 
 def get_video_cap(filename):
     print('Opening ' + filename)
@@ -27,6 +30,8 @@ def get_video_cap(filename):
     # widget.show()
     #
     # sys.exit(app.exec_()
+
+
 def run():
     app = QApplication(sys.argv)
 
@@ -92,6 +97,13 @@ def run():
     main_window = VideoPlaybackWidget(get_frame_func=get_frame,
                                       frame_rate=frame_rate)
     main_window.show()
+
+    pg_win = pg.GraphicsWindow(size=[main_window.width(), 150])
+    pg_win.setWindowTitle('pyqtgraph example: Scrolling Plots')
+    data1 = np.random.normal(size=300)
+    p1 = pg_win.addPlot()
+    curve1 = p1.plot(data1)
+
     rtnval = app.exec_()
     return rtnval
 

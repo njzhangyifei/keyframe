@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_VideoPlaybackWidget(object):
     def setupUi(self, VideoPlaybackWidget):
         VideoPlaybackWidget.setObjectName("VideoPlaybackWidget")
-        VideoPlaybackWidget.resize(685, 531)
+        VideoPlaybackWidget.resize(1000, 600)
         self.gridLayout = QtWidgets.QGridLayout(VideoPlaybackWidget)
         self.gridLayout.setObjectName("gridLayout")
         self.groupBoxVideo = QtWidgets.QGroupBox(VideoPlaybackWidget)
@@ -25,14 +25,6 @@ class Ui_VideoPlaybackWidget(object):
         self.horizontalLayout_control.setObjectName("horizontalLayout_control")
         self.horizontalLayout_right = QtWidgets.QHBoxLayout()
         self.horizontalLayout_right.setObjectName("horizontalLayout_right")
-        self.pushButton_pause = QtWidgets.QPushButton(self.groupBoxVideo)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.pushButton_pause.sizePolicy().hasHeightForWidth())
-        self.pushButton_pause.setSizePolicy(sizePolicy)
-        self.pushButton_pause.setObjectName("pushButton_pause")
-        self.horizontalLayout_right.addWidget(self.pushButton_pause)
         self.horizontalLayout_control.addLayout(self.horizontalLayout_right)
         self.horizontalLayout_left = QtWidgets.QHBoxLayout()
         self.horizontalLayout_left.setObjectName("horizontalLayout_left")
@@ -57,6 +49,5 @@ class Ui_VideoPlaybackWidget(object):
         _translate = QtCore.QCoreApplication.translate
         VideoPlaybackWidget.setWindowTitle(_translate("VideoPlaybackWidget", "Video Playback"))
         self.groupBoxVideo.setTitle(_translate("VideoPlaybackWidget", "Video Playback"))
-        self.pushButton_pause.setText(_translate("VideoPlaybackWidget", "Start Update"))
         self.label_status.setText(_translate("VideoPlaybackWidget", "Status"))
 

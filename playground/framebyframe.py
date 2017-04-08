@@ -2,6 +2,8 @@
 import sys
 from PyQt5 import QtCore
 
+import pyqtgraph as pg
+
 import cv2
 import numpy as np
 from PyQt5.QtCore import QTimer, QPoint
@@ -111,6 +113,7 @@ if __name__ == '__main__':
     video_cap = cv2.VideoCapture(filename)
     frame_rate = video_cap.get(cv2.CAP_PROP_FPS)
     print('Frame rate = ' + str(frame_rate))
+
 
     widget = VideoWidget(video_cap, frame_rate * 1.5)
 

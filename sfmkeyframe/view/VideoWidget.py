@@ -18,7 +18,7 @@ import numpy as np
 class VideoWidget(QWidget):
     timerStatusChanged = pyqtSignal([bool])
 
-    def __init__(self, frame_rate=0, parent=None):
+    def __init__(self, parent=None, frame_rate=0):
         QWidget.__init__(self, parent=parent)
         p = self.palette()
         p.setColor(self.backgroundRole(), Qt.black)
@@ -64,38 +64,33 @@ class VideoWidget(QWidget):
             self.stop()
             self.start()
 
-    def attach_get_frame_func(self, get_frame_func):
-        if get_frame_func:
-            self.get_frame_func = get_frame_func
-
     def update_frame(self):
-        width = self.width()
-        height = self.height()
         if self.get_frame_func:
             rtnval = self.get_frame_func()
             if rtnval and type(rtnval) is CVFrame:
                 self.frame = rtnval
+        height = min(self.height(), self.frame.height)
+        width = min(self.width(), self.frame.width)
         if self.frame:
             self.image_out = self.frame.get_image(width, height)
-        else:
-            if self.frame_fallback and \
-                    (self.frame_fallback.width == width
-                     and self.frame_fallback.height == height):
-                self.image_out = self.frame_fallback.get_image()
-            else:
-                self.image_out = self.get_fallback_frame().get_image()
         self.update()
 
     def paintEvent(self, event):
         width = self.width()
         height = self.height()
         painter = QPainter(self)
-        if not self.timer.isActive():
-            self.image_out = self.get_fallback_frame().get_image()
-        if self.image_out:
-            top_left = QPoint((width - self.image_out.width())/ 2,
-                              (height - self.image_out.height()) / 2)
-            painter.drawImage(top_left, self.image_out)
+        # if not self.timer.isActive():
+        #     self.image_out = self.get_fallback_frame().get_image()
+        if not self.image_out:
+            if self.frame_fallback and \
+                    (self.frame_fallback.width == width
+                     and self.frame_fallback.height == height):
+                self.image_out = self.frame_fallback.get_image()
+            else:
+                self.image_out = self.get_fallback_frame().get_image()
+        top_left = QPoint((width - self.image_out.width())/ 2,
+                          (height - self.image_out.height()) / 2)
+        painter.drawImage(top_left, self.image_out)
 
     def closeEvent(self, event):
         self.stop()
