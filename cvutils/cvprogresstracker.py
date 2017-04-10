@@ -69,19 +69,3 @@ class CVProgressTracker:
             self.callback_progress(self)
         self._counter = (self._counter + 1) % self.callback_per_num_update
 
-
-class CVProgressTrackerProxy:
-    def __init__(self, progress_tracker: CVProgressTracker):
-        self.progress_tracker = progress_tracker
-
-    def start(self):
-        self.progress_tracker.running = True
-
-    def set_progress(self, progress):
-        self.progress_tracker.progress = progress
-
-    def get_progress(self):
-        return self.progress_tracker.progress
-
-    def complete(self):
-        self.progress_tracker.complete()

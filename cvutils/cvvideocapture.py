@@ -22,12 +22,11 @@ class CVVideoCapture:
     def read(self):
         if not self.capture.isOpened():
             return None
-        ret = self.capture.grab()
-        ret, frame = self.capture.retrieve()
-        # ret, frame = self.capture.read()
+        frame_pos = self.get_position_frame()
+        ret, frame = self.capture.read()
         if not ret:
             return None
-        return CVFrame(frame)
+        return CVFrame(frame, position_frame=frame_pos)
 
     def set(self, cv_prop, val):
         return self.capture.set(cv_prop, val)

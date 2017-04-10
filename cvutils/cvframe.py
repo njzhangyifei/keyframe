@@ -5,12 +5,16 @@ from PyQt5.QtGui import QImage
 
 
 class CVFrame:
-    def __init__(self, cv_mat, grayscale=False, abs_scale_conversion=False):
+    def __init__(self, cv_mat,
+                 position_frame=0,
+                 grayscale=False,
+                 abs_scale_conversion=False):
         self.abs_scale_conversion = abs_scale_conversion
         self.grayscale = grayscale
         self._cv_mat = cv_mat
         self.image = None
         self.height, self.width = cv_mat.shape[:2]
+        self.position_frame = position_frame
 
     @property
     def cv_mat(self):
@@ -40,4 +44,3 @@ class CVFrame:
             return self.image.scaled(scaled_width, scaled_height,
                                      QtCore.Qt.KeepAspectRatio)
         return self.image
-
