@@ -4,10 +4,10 @@ from cvutils import CVFrame
 
 
 class CVVideoCapture:
-    def __init__(self, video_capture, is_camera=False):
+    def __init__(self, file_handle, is_camera=False):
         self.is_camera = is_camera
-        # self.capture = cv2.VideoCapture()
-        self.capture = video_capture
+        self.file_handle = file_handle
+        self.capture = cv2.VideoCapture(self.file_handle)
 
     @property
     def is_open(self):
@@ -17,12 +17,14 @@ class CVVideoCapture:
         return self.capture.open(arg)
 
     def release(self):
-        self.release()
+        self.capture.release()
 
     def read(self):
         if not self.capture.isOpened():
             return None
-        ret, frame = self.capture.read()
+        ret = self.capture.grab()
+        ret, frame = self.capture.retrieve()
+        # ret, frame = self.capture.read()
         if not ret:
             return None
         return CVFrame(frame)

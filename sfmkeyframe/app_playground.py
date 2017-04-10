@@ -1,6 +1,7 @@
 import sys
 
 import cv2
+import logging
 from PyQt5 import QtCore
 
 from PyQt5.QtWidgets import QFileDialog, QMainWindow, QHBoxLayout, QVBoxLayout, \
@@ -43,14 +44,15 @@ class SharpnessViewer(QMainWindow):
 
 
 if __name__ == '__main__':
+    logging.getLogger().setLevel(logging.INFO)
     app = QApplication(sys.argv)
     # ex = SharpnessViewer(app)
     # ex.show()
-    # filename = select_file()[0]
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    filename = select_file()[0]
+    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
     # filename = '/home/yifei/develop/sealab/keyframe/data/GP027728.MP4'
-    video_cap, frame_rate = get_video_cap(filename)
-    video_cap = CVVideoCapture(video_cap)
+    video_cap = CVVideoCapture(filename)
+    frame_rate = video_cap.get_frame_rate()
 
 
     def callback(arg):
@@ -61,11 +63,12 @@ if __name__ == '__main__':
 
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        frame_start=0, frame_end=100,
+        # frame_start=0, frame_end=1000,
         cv_video_capture=video_cap, progress_tracker=progress_tracker)
+    print('frame count = ' + str(video_cap.get_frame_count()))
     print(sharpness_measure.shape[0])
     sharpness_result = cvsharpness.test_sharpness_acceptance(
-        sharpness_measure, frame_rate)
+        sharpness_measure, frame_rate, sigma_bound=0.5)
     print((sharpness_result == 1).sum())
 
     playback_widget = VideoPlaybackWidget()

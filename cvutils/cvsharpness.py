@@ -1,12 +1,16 @@
 import multiprocessing
-from multiprocessing import Lock, Value, RLock, Process, JoinableQueue
-from multiprocessing.pool import Pool
+from multiprocessing import RLock, Process
+
+import logging
+import os
+
+import cv2
+import numpy as np
+from multiprocessing.managers import BaseManager
 
 from cvutils import CVVideoCapture
-from cvutils.cvprogresstracker import CVProgressTracker
+from cvutils.cvprogresstracker import CVProgressTracker, CVProgressTrackerProxy
 from .cvframe import CVFrame
-import numpy as np
-import cv2
 
 
 class CVSharpness:
@@ -20,12 +24,11 @@ class CVSharpness:
             self.kernel_y = np.array([(1, 2, 1), (0, 0, 0), (-1, -2, -1)],
                                      np.double)
 
-    shared_data = None
-
     def calculate_sharpness_video_capture(self,
                                           cv_video_capture: CVVideoCapture,
                                           frame_start=0, frame_end=None,
                                           gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
+                                          batch_size = 100,
                                           progress_tracker:
                                           CVProgressTracker = None):
         frame_count = int(cv_video_capture.get_frame_count())
@@ -33,46 +36,79 @@ class CVSharpness:
             cv_video_capture.set_position_frame(frame_start)
             frame_count = min(frame_end - frame_start, frame_count)
             frame_count = max(frame_count, 0)
-        frame_sharpness = np.zeros([frame_count], np.double)
 
         if progress_tracker:
             progress_tracker.running = True
 
+        frame_sharpness_ctype = multiprocessing.Array('d', frame_count)
         lock_video_capture = RLock()
         lock_progress_tracker = RLock()
-        batch_size = 100
-
-        worker_count = multiprocessing.cpu_count() - 1
-        task_per_worker = int(frame_count / worker_count)
-        # processes = [Process(target=calculate_sharpness_worker,
-        #                      args=arg_tuple) for arg_tuple in args_list]
-        # processes[0].start()
-        # processes[0].join()
-        # for p in processes:
-        #     p.start()
-        # for p in processes:
-        #     p.join()
-
-        def test_videocapture(num):
-            frame = cv_video_capture.read()
-            print('id = ' + num +
-                  ' frame='+cv_video_capture.get_position_frame())
-
-        
-
-        # i = 0
-        # while i < frame_count:
-        #     cv_frame = cv_video_capture.read()
-        #     frame_sharpness[i] = \
-        #         self.calculate_sharpness_frame(cv_frame,
-        #                                        gray_scale_conversion_code)
-        #     i += 1
-        #     if progress_tracker:
-        #         progress_tracker.progress = i / frame_count
 
         if progress_tracker:
+            BaseManager.register('CVProgressTrackerProxy',
+                                 CVProgressTrackerProxy)
+            manager = BaseManager()
+            manager.start()
+            proxy_inst = manager.CVProgressTrackerProxy(progress_tracker)
+        else:
+            proxy_inst = None
+
+        worker_count = multiprocessing.cpu_count()
+        task_per_worker = int(frame_count / worker_count)
+        args_list = [(task_per_worker * i,
+                      task_per_worker * (i + 1),
+                      cv_video_capture.file_handle)
+                     for i in range(0, worker_count - 1)]
+        args_list.append((task_per_worker * (worker_count - 1), frame_count,
+                          cv_video_capture.file_handle))
+
+        def calculate_sharpness_video_capture_worker(worker_frame_start,
+                                                     worker_frame_end,
+                                                     file_handle):
+            video_capture = CVVideoCapture(file_handle)
+            total_frame = worker_frame_end - worker_frame_start
+            while total_frame != 0:
+                if total_frame > batch_size:
+                    with lock_video_capture:
+                        # logging.info('Process %d - Reading %d frames from '
+                        #              '%d', os.getpid(), batch_size,
+                        #              worker_frame_start)
+                        video_capture.set_position_frame(worker_frame_start)
+                        frame_tuple_list = [
+                            (worker_frame_start + i, video_capture.read())
+                            for i in range(0, batch_size)]
+                        worker_frame_start += batch_size
+                    total_frame -= batch_size
+                else:
+                    with lock_video_capture:
+                        # logging.info('Process %d - Reading %d frames from '
+                        #              '%d, last batch', os.getpid(),
+                        #              total_frame, worker_frame_start)
+                        frame_tuple_list = [
+                            (worker_frame_start + i, video_capture.read())
+                            for i in range(0, total_frame)]
+                    total_frame = 0
+                for frame_tuple in frame_tuple_list:
+                    frame_sharpness_ctype[frame_tuple[0]] = \
+                        self.calculate_sharpness_frame(frame_tuple[1],
+                                                       gray_scale_conversion_code)
+                with lock_progress_tracker:
+                    if proxy_inst:
+                        proxy_inst.set_progress(proxy_inst.get_progress() +
+                                                len(frame_tuple_list) / frame_count)
+            video_capture.release()
+
+        processes = [Process(target=calculate_sharpness_video_capture_worker,
+                             args=arg_tuple) for arg_tuple in args_list]
+        if progress_tracker:
+            progress_tracker.running = True
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+        if progress_tracker:
             progress_tracker.complete()
-        return frame_sharpness
+        return np.array(frame_sharpness_ctype)
 
     def calculate_sharpness_frame(self, cv_frame: CVFrame,
                                   gray_scale_conversion_code
