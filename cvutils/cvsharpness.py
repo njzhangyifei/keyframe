@@ -45,9 +45,7 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
                 #       '%d', os.getpid(), batch_size,
                 #       worker_frame_start)
                 video_capture.set_position_frame(worker_frame_start)
-                frame_tuple_list = [
-                    (worker_frame_start + i, video_capture.read())
-                    for i in range(0, batch_size)]
+                frame_list = [video_capture.read() for i in range(0, batch_size)]
                 worker_frame_start += batch_size
             total_frame -= batch_size
         else:
@@ -59,19 +57,15 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
                 #       '%d, last batch', os.getpid(),
                 #       total_frame, worker_frame_start)
                 video_capture.set_position_frame(worker_frame_start)
-                frame_tuple_list = [
-                    (worker_frame_start + i, video_capture.read())
-                    for i in range(0, total_frame)]
+                frame_list = [video_capture.read() for i in range(0, total_frame)]
             total_frame = 0
-        for frame_tuple in frame_tuple_list:
-            if frame_tuple[1] is None:
-                print(frame_tuple[0])
-            frame_sharpness_ctype[frame_tuple[0]] = \
-                _calculate_sharpness_cvmat(frame_tuple[1].cv_mat,
+        for frame in frame_list:
+            frame_sharpness_ctype[int(frame.position_frame)] = \
+                _calculate_sharpness_cvmat(frame.cv_mat,
                                            kernel_x, kernel_y,
                                            gray_scale_conversion_code)
         with progress_value.get_lock():
-            progress_value.value += len(frame_tuple_list) / frame_count
+            progress_value.value += len(frame_list) / frame_count
     video_capture.release()
 
 
@@ -178,8 +172,8 @@ class CVSharpness:
             window = sharpness_calculated[i:i + min(frame_window_size,
                                                     frame_count - i)]
             result_window = np.ones_like(window)
-            window_mean = sharpness_calculated.mean()
-            window_std = sharpness_calculated.std()
+            window_mean = window.mean()
+            window_std = window.std()
             diff = (window - window_mean)
             result_window[diff < -sigma_bound * window_std] = 0
             result = np.concatenate((result, result_window))

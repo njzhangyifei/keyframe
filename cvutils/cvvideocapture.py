@@ -7,7 +7,9 @@ class CVVideoCapture:
     def __init__(self, file_handle, is_camera=False):
         self.is_camera = is_camera
         self.file_handle = file_handle
+        self.frame_count = None
         self.capture = cv2.VideoCapture(self.file_handle)
+        self.update_frame_count()
 
     @property
     def is_open(self):
@@ -34,12 +36,16 @@ class CVVideoCapture:
     def get(self, cv_prop):
         return self.capture.get(cv_prop)
 
-    def get_frame_count(self):
+    def update_frame_count(self):
         current_pos = self.capture.get(cv2.CAP_PROP_POS_FRAMES)
         self.capture.set(cv2.CAP_PROP_POS_AVI_RATIO, 1)
-        frame_count = self.capture.get(cv2.CAP_PROP_POS_FRAMES)
+        self.frame_count = self.capture.get(cv2.CAP_PROP_POS_FRAMES)
         self.capture.set(cv2.CAP_PROP_POS_FRAMES, current_pos)
-        return frame_count
+
+    def get_frame_count(self):
+        if self.frame_count is None:
+            self.update_frame_count()
+        return self.frame_count
 
     def get_frame_rate(self):
         return self.get(cv2.CAP_PROP_FPS)

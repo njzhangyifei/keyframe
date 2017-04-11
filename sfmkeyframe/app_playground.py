@@ -51,9 +51,9 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     # ex = SharpnessViewer(app)
     # ex.show()
-    # filename = select_file()[0]
+    filename = select_file()[0]
     # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    filename = '/home/yifei/develop/sealab/keyframe/data/GP027728.MP4'
+    # filename = '/home/yifei/develop/sealab/keyframe/data/GP027728.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -72,14 +72,15 @@ if __name__ == '__main__':
 
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        # frame_start=0, frame_end=100,
+        # frame_start=0, frame_end=10000,
         cv_video_capture=video_cap,
         progress_tracker=progress_tracker
     )
     print('frame count = ' + str(video_cap.get_frame_count()))
     print(sharpness_measure.shape[0])
     sharpness_result = cvsharpness.test_sharpness_acceptance(
-        sharpness_measure, frame_rate, sigma_bound=0.5)
+        # sharpness_measure, 35, sigma_bound=0.5)
+        sharpness_measure, frame_rate * 2, sigma_bound=0.5)
     print((sharpness_result == 1).sum())
     print(sharpness_result.shape[0])
 
@@ -96,9 +97,8 @@ if __name__ == '__main__':
         playback_widget.update_status(status_str)
         playback_widget.on_incomingFrame(frame)
 
-
-    control_widget.incomingFrame.connect(playback_widget.on_incomingFrame)
-    # control_widget.incomingFrame.connect(buildFrame)
+    # control_widget.incomingFrame.connect(playback_widget.on_incomingFrame)
+    control_widget.incomingFrame.connect(buildFrame)
     control_widget.show()
     playback_widget.show()
 

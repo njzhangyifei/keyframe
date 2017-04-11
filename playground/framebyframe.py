@@ -11,7 +11,6 @@ from PyQt5.QtGui import QImage, QPainter
 from PyQt5.QtWidgets import QFileDialog, QApplication, QWidget
 
 
-
 def selectFile():
     dlg = QFileDialog()
     dlg.setFileMode(QFileDialog.AnyFile)
@@ -62,7 +61,8 @@ class VideoWidget(QWidget):
                      + np.sum(filtered_x ** 2)) / float(height * width * 2)
 
         font = cv2.FONT_HERSHEY_COMPLEX
-        cv2.putText(frame_gray_rgb, str(self.capture.get(cv2.CAP_PROP_POS_FRAMES)),
+        cv2.putText(frame_gray_rgb,
+                    str(self.capture.get(cv2.CAP_PROP_POS_FRAMES)),
                     (0, 40), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.putText(frame_gray_rgb, str(sharpness), (0, height - 10),
                     font, 1, (255, 255, 255), 1, cv2.LINE_AA)
@@ -113,7 +113,6 @@ if __name__ == '__main__':
     video_cap = cv2.VideoCapture(filename)
     frame_rate = video_cap.get(cv2.CAP_PROP_FPS)
     print('Frame rate = ' + str(frame_rate))
-
 
     widget = VideoWidget(video_cap, frame_rate * 1.5)
 
