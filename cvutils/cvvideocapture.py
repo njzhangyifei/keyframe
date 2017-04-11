@@ -35,10 +35,11 @@ class CVVideoCapture:
         return self.capture.get(cv_prop)
 
     def get_frame_count(self):
-        return self.get(cv2.CAP_PROP_FRAME_COUNT)
-
-    def set_frame_count(self, count):
-        return self.set(cv2.CAP_PROP_FRAME_COUNT, count)
+        current_pos = self.capture.get(cv2.CAP_PROP_POS_FRAMES)
+        self.capture.set(cv2.CAP_PROP_POS_AVI_RATIO, 1)
+        frame_count = self.capture.get(cv2.CAP_PROP_POS_FRAMES)
+        self.capture.set(cv2.CAP_PROP_POS_FRAMES, current_pos)
+        return frame_count
 
     def get_frame_rate(self):
         return self.get(cv2.CAP_PROP_FPS)

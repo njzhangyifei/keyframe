@@ -52,10 +52,16 @@ if __name__ == '__main__':
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    # filename = '/home/yifei/develop/sealab/keyframe/data/GP027728.MP4'
+    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    filename = '/home/yifei/develop/sealab/keyframe/data/GP027728.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
+
+    # print("frame count = %f" % video_cap.get_frame_count())
+    # video_cap.set(cv2.CAP_PROP_POS_AVI_RATIO, 1)
+    # print("pos frame" + str(video_cap.get_position_frame()))
+    # frame = video_cap.read()
+    # print("last frame" + str(frame.position_frame))
 
 
     def callback(arg):
@@ -66,7 +72,7 @@ if __name__ == '__main__':
 
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        frame_start=0, frame_end=100,
+        # frame_start=0, frame_end=100,
         cv_video_capture=video_cap,
         progress_tracker=progress_tracker
     )
@@ -80,6 +86,7 @@ if __name__ == '__main__':
     playback_widget = VideoPlaybackWidget()
     control_widget = VideoPlaybackControlWidget(video_cap)
 
+
     def buildFrame(frame: CVFrame):
         pos = int(frame.position_frame)
         status_str = 'Frame [%d] ' % pos
@@ -88,8 +95,10 @@ if __name__ == '__main__':
             status_str += 'Acc' if sharpness_result[pos] else 'Rej'
         playback_widget.update_status(status_str)
         playback_widget.on_incomingFrame(frame)
-    # control_widget.incomingFrame.connect(playback_widget.on_incomingFrame)
-    control_widget.incomingFrame.connect(buildFrame)
+
+
+    control_widget.incomingFrame.connect(playback_widget.on_incomingFrame)
+    # control_widget.incomingFrame.connect(buildFrame)
     control_widget.show()
     playback_widget.show()
 

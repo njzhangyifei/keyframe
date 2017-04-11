@@ -64,6 +64,8 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
                     for i in range(0, total_frame)]
             total_frame = 0
         for frame_tuple in frame_tuple_list:
+            if frame_tuple[1] is None:
+                print(frame_tuple[0])
             frame_sharpness_ctype[frame_tuple[0]] = \
                 _calculate_sharpness_cvmat(frame_tuple[1].cv_mat,
                                            kernel_x, kernel_y,
