@@ -1,7 +1,5 @@
 import multiprocessing
-import os
 from multiprocessing import RLock, Process
-from time import sleep
 
 import cv2
 import numpy as np
@@ -12,12 +10,10 @@ from utils import RepeatingTimer
 from .cvframe import CVFrame
 
 
-def _calculate_sharpness_cvmat(cv_mat, kernel_x, kernel_y,
-                               gray_scale_conversion_code=cv2.COLOR_BGR2GRAY):
-    height, width = cv_mat.shape[:2]
-    frame_gray = cv2.cvtColor(cv_mat, gray_scale_conversion_code)
-    filtered_x = cv2.filter2D(frame_gray, cv2.CV_64F, kernel_x)
-    filtered_y = cv2.filter2D(frame_gray, cv2.CV_64F, kernel_y)
+def _calculate_sharpness_cvmat(cv_mat_grayscale, kernel_x, kernel_y):
+    height, width = cv_mat_grayscale.shape[:2]
+    filtered_x = cv2.filter2D(cv_mat_grayscale, cv2.CV_64F, kernel_x)
+    filtered_y = cv2.filter2D(cv_mat_grayscale, cv2.CV_64F, kernel_y)
     sharpness = (np.sum(filtered_y ** 2) +
                  np.sum(filtered_x ** 2)) / float(height * width * 2)
     return sharpness
@@ -61,9 +57,9 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
             total_frame = 0
         for frame in frame_list:
             frame_sharpness_ctype[int(frame.position_frame)] = \
-                _calculate_sharpness_cvmat(frame.cv_mat,
-                                           kernel_x, kernel_y,
-                                           gray_scale_conversion_code)
+                _calculate_sharpness_cvmat(
+                    frame.get_cv_mat_grayscale(gray_scale_conversion_code),
+                    kernel_x, kernel_y)
         with progress_value.get_lock():
             progress_value.value += len(frame_list) / frame_count
     video_capture.release()
@@ -149,13 +145,9 @@ class CVSharpness:
                                   =cv2.COLOR_BGR2GRAY):
         if cv_frame is None:
             return 0
-        return self.calculate_sharpness_cvmat(cv_frame.cv_mat,
-                                              gray_scale_conversion_code)
-
-    def calculate_sharpness_cvmat(self, cv_mat, gray_scale_conversion_code):
-        return _calculate_sharpness_cvmat(cv_mat,
-                                          self.kernel_x, self.kernel_y,
-                                          gray_scale_conversion_code)
+        return _calculate_sharpness_cvmat(cv_frame.get_cv_mat_grayscale
+                                          (gray_scale_conversion_code),
+                                          self.kernel_x, self.kernel_y)
 
     @staticmethod
     def test_sharpness_acceptance(sharpness_calculated: np.ndarray,

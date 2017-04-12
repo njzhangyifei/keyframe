@@ -15,6 +15,7 @@ class CVFrame:
         self.image = None
         self.height, self.width = cv_mat.shape[:2]
         self.position_frame = position_frame
+        self._cv_mat_grayscale = None
 
     @property
     def cv_mat(self):
@@ -25,6 +26,11 @@ class CVFrame:
         self._cv_mat = mat
         self.image = None
         self.height, self.width = self._cv_mat.shape[:2]
+
+    def get_cv_mat_grayscale(self, conversion_code=cv2.COLOR_BGR2GRAY):
+        if self._cv_mat_grayscale is None:
+            self._cv_mat_grayscale = cv2.cvtColor(self._cv_mat, conversion_code)
+        return self._cv_mat_grayscale
 
     def get_image(self, scaled_width=None, scaled_height=None):
         if self.image:

@@ -9,6 +9,8 @@ from PyQt5.QtWidgets import QFileDialog, QMainWindow, QHBoxLayout, QVBoxLayout, 
 from multiprocessing import freeze_support
 
 from cvutils import CVFrame
+from cvutils.cvcorrelation import CVCorrelation
+from cvutils.cvframebuffer import CVFrameBuffer
 from cvutils.cvprogresstracker import CVProgressTracker
 from cvutils.cvsharpness import CVSharpness
 from cvutils.cvvideocapture import CVVideoCapture
@@ -51,9 +53,9 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
     # ex = SharpnessViewer(app)
     # ex.show()
-    filename = select_file()[0]
-    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    # filename = '/home/yifei/develop/sealab/keyframe/data/GP027728.MP4'
+    # filename = select_file()[0]
+    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -72,7 +74,7 @@ if __name__ == '__main__':
 
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        # frame_start=0, frame_end=10000,
+        frame_start=0, frame_end=1000,
         cv_video_capture=video_cap,
         progress_tracker=progress_tracker
     )
@@ -87,6 +89,7 @@ if __name__ == '__main__':
     playback_widget = VideoPlaybackWidget()
     control_widget = VideoPlaybackControlWidget(video_cap)
 
+    frame_buffer = CVFrameBuffer(int(frame_rate)+1)
 
     def buildFrame(frame: CVFrame):
         pos = int(frame.position_frame)
@@ -94,6 +97,13 @@ if __name__ == '__main__':
         if pos < sharpness_result.shape[0]:
             status_str += ' sharpness [%d] ' % sharpness_measure[pos]
             status_str += 'Acc' if sharpness_result[pos] else 'Rej'
+        frame_buffer.append(frame)
+        if len(frame_buffer) > 10:
+            frame_prev_5 = frame_buffer.get_last(5)
+            frame_prev_10 = frame_buffer.get_last(10)
+            corr_5 = CVCorrelation.calculate_correlation_frame(frame, frame_prev_5)
+            corr_10 = CVCorrelation.calculate_correlation_frame(frame, frame_prev_10)
+            pass
         playback_widget.update_status(status_str)
         playback_widget.on_incomingFrame(frame)
 
