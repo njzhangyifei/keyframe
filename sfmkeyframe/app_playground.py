@@ -59,6 +59,7 @@ if __name__ == '__main__':
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
+
     # print("frame count = %f" % video_cap.get_frame_count())
     # video_cap.set(cv2.CAP_PROP_POS_AVI_RATIO, 1)
     # print("pos frame" + str(video_cap.get_position_frame()))
@@ -74,7 +75,7 @@ if __name__ == '__main__':
 
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        frame_start=0, frame_end=1000,
+        frame_start=0, frame_end=100,
         cv_video_capture=video_cap,
         progress_tracker=progress_tracker
     )
@@ -89,7 +90,8 @@ if __name__ == '__main__':
     playback_widget = VideoPlaybackWidget()
     control_widget = VideoPlaybackControlWidget(video_cap)
 
-    frame_buffer = CVFrameBuffer(int(frame_rate)+1)
+    frame_buffer = CVFrameBuffer(int(frame_rate) + 1)
+
 
     def buildFrame(frame: CVFrame):
         pos = int(frame.position_frame)
@@ -101,11 +103,16 @@ if __name__ == '__main__':
         if len(frame_buffer) > 10:
             frame_prev_5 = frame_buffer.get_last(5)
             frame_prev_10 = frame_buffer.get_last(10)
-            corr_5 = CVCorrelation.calculate_correlation_frame(frame, frame_prev_5)
-            corr_10 = CVCorrelation.calculate_correlation_frame(frame, frame_prev_10)
+            corr_5 = CVCorrelation.calculate_correlation_frame(frame,
+                                                               frame_prev_5)
+            corr_10 = CVCorrelation.calculate_correlation_frame(frame,
+                                                                frame_prev_10)
+            status_str += ' correlation [-5] = %d, [-10] = %d' % (corr_5,
+                                                                  corr_10)
             pass
         playback_widget.update_status(status_str)
         playback_widget.on_incomingFrame(frame)
+
 
     # control_widget.incomingFrame.connect(playback_widget.on_incomingFrame)
     control_widget.incomingFrame.connect(buildFrame)
