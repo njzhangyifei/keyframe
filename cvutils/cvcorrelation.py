@@ -27,20 +27,31 @@ def _calculate_correlation_capture_worker(worker_frame_start,
     done = False
     buffer = deque()
     current_frame = worker_frame_start
+    need_more_frame = True
     while not done:
+        if need_more_frame:
+            # read in until the end
+            if current_frame < worker_frame_end:
+                amount_load = int(min(batch_size, worker_frame_end - current_frame))
+                buffer += [video_capture.read() for i in range(0, amount_load)]
+                current_frame += amount_load
+                need_more_frame = False
+            else:
+                # no more frame?
+                pass
 
-        # read in until the end
-        if current_frame < worker_frame_end:
-            amount_load = int(min(batch_size, worker_frame_end - current_frame))
-            buffer += [video_capture.read() for i in range(0, amount_load)]
-            current_frame += amount_load
-
-        # purge
+        # purge buffer until we find a possible list
         while True:
+            if len(buffer) == 0:
+                need_more_frame = True
+                continue
             if worker_frame_acceptance_ctype[int(buffer[0].position_frame)]:
                 break
             else:
                 buffer.popleft()
+
+        # start with buffer[0], find the farthest, just below correlation_limit
+        # the frame must satisfy sharpness criterion
 
         pass
         # if total_frame > batch_size:
