@@ -75,7 +75,8 @@ if __name__ == '__main__':
 
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        frame_start=0, frame_end=1000,
+        frame_start=0, frame_end=10000,
+        batch_size=300,
         cv_video_capture=video_cap,
         progress_tracker=progress_tracker
     )
@@ -95,6 +96,8 @@ if __name__ == '__main__':
 
     def buildFrame(frame: CVFrame):
         pos = int(frame.position_frame)
+        if not sharpness_result[pos]:
+            return
         status_str = 'Frame [%d] ' % pos
         if pos < sharpness_result.shape[0]:
             status_str += ' sharpness [%d] ' % sharpness_measure[pos]
