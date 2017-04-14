@@ -21,6 +21,7 @@ def _calculate_sharpness_cvmat(cv_mat_grayscale, kernel_x, kernel_y):
 
 def _calculate_sharpness_video_capture_worker(worker_frame_start,
                                               worker_frame_end,
+                                              frame_start,
                                               frame_count,
                                               batch_size,
                                               kernel_x, kernel_y,
@@ -56,7 +57,7 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
                 frame_list = [video_capture.read() for i in range(0, total_frame)]
             total_frame = 0
         for frame in frame_list:
-            frame_sharpness_ctype[int(frame.position_frame)] = \
+            frame_sharpness_ctype[int(frame.position_frame - frame_start)] = \
                 _calculate_sharpness_cvmat(
                     frame.get_cv_mat_grayscale(gray_scale_conversion_code),
                     kernel_x, kernel_y)
@@ -79,8 +80,8 @@ class CVSharpness:
     def calculate_sharpness_video_capture(self,
                                           cv_video_capture: CVVideoCapture,
                                           frame_start=0, frame_end=None,
-                                          gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
                                           batch_size=100,
+                                          gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
                                           progress_tracker:
                                           CVProgressTracker = None):
         frame_count = int(cv_video_capture.get_frame_count())
@@ -100,7 +101,7 @@ class CVSharpness:
         worker_count = multiprocessing.cpu_count()
         task_per_worker = int(frame_count / worker_count)
         args_list = [(task_per_worker * i, task_per_worker * (i + 1),
-                      frame_count, batch_size,
+                      frame_start, frame_count, batch_size,
                       self.kernel_x, self.kernel_y,
                       frame_sharpness_ctype,
                       cv_video_capture.file_handle,
@@ -109,7 +110,7 @@ class CVSharpness:
                       gray_scale_conversion_code)
                      for i in range(0, worker_count - 1)]
         args_list.append((task_per_worker * (worker_count - 1), frame_count,
-                          frame_count, batch_size,
+                          frame_start, frame_count, batch_size,
                           self.kernel_x, self.kernel_y,
                           frame_sharpness_ctype,
                           cv_video_capture.file_handle,
@@ -156,18 +157,18 @@ class CVSharpness:
         # only reject if sharpness < (-sigma_bound * \sigma)
         frame_window_size = round(frame_window_size)
         sigma_bound = abs(sigma_bound)
-        result = np.array([])
+        result = np.array([], dtype=np.bool_)
         frame_count = sharpness_calculated.shape[0]
         if progress_tracker:
             progress_tracker.running = True
         for i in range(0, frame_count, frame_window_size):
             window = sharpness_calculated[i:i + min(frame_window_size,
                                                     frame_count - i)]
-            result_window = np.ones_like(window)
+            result_window = np.ones_like(window, dtype=np.bool_)
             window_mean = window.mean()
             window_std = window.std()
             diff = (window - window_mean)
-            result_window[diff < -sigma_bound * window_std] = 0
+            result_window[diff < -sigma_bound * window_std] = False
             result = np.concatenate((result, result_window))
             if progress_tracker:
                 progress_tracker.progress = i / frame_count

@@ -1,8 +1,18 @@
 from collections import deque
 
 import cv2
+import logging
+
+import multiprocessing
+
+from multiprocessing import Process
+
+import numpy as np
+import os
 
 from cvutils import CVFrame, CVVideoCapture
+from cvutils.cvprogresstracker import CVProgressTracker
+from utils import RepeatingTimer
 
 
 def _calculate_correlation_cvmat(cvmat_grayscale, template_grayscale):
@@ -13,72 +23,173 @@ def _calculate_correlation_cvmat(cvmat_grayscale, template_grayscale):
 
 def _calculate_correlation_capture_worker(worker_frame_start,
                                           worker_frame_end,
+                                          frame_start,
                                           frame_count,
                                           batch_size,
                                           correlation_limit,
-                                          worker_frame_acceptance_ctype,
+                                          frame_acceptance_ctype,
                                           file_handle,
                                           progress_value,
                                           lock_video_capture,
                                           gray_scale_conversion_code):
     video_capture = CVVideoCapture(file_handle)
+    video_capture.set_position_frame(worker_frame_start)
     frame_rate = video_capture.get_frame_rate()
-    total_frame = worker_frame_end - worker_frame_start
-    done = False
     buffer = deque()
     current_frame = worker_frame_start
     need_more_frame = True
-    while not done:
+    while True:
         if need_more_frame:
             # read in until the end
             if current_frame < worker_frame_end:
-                amount_load = int(min(batch_size, worker_frame_end - current_frame))
-                buffer += [video_capture.read() for i in range(0, amount_load)]
+                amount_load = int(
+                    min(batch_size, worker_frame_end - current_frame))
+                with lock_video_capture:
+                    buffer += [video_capture.read() for i in
+                               range(0, amount_load)]
                 current_frame += amount_load
                 need_more_frame = False
             else:
                 # no more frame?
-                pass
+                break
 
         # purge buffer until we find a possible list
         while True:
             if len(buffer) == 0:
                 need_more_frame = True
                 continue
-            if worker_frame_acceptance_ctype[int(buffer[0].position_frame)]:
+            if frame_acceptance_ctype[
+                int(buffer[0].position_frame - frame_start)]:
                 break
             else:
                 buffer.popleft()
 
-        # start with buffer[0], find the farthest, just below correlation_limit
-        # the frame must satisfy sharpness criterion
+        # greedy, find correlation match for first one
+        iter_buffer = iter(buffer)
+        template = next(iter_buffer)
+        template_gray = template.get_cv_mat_grayscale(
+            gray_scale_conversion_code)
+        image = None
+        skipped_frame_count = 0
+        for image_i in iter_buffer:  # type: CVFrame
+            if not frame_acceptance_ctype[int(image_i.position_frame - frame_start)]:
+                skipped_frame_count += 1
+                continue
+            image_i_gray = image_i.get_cv_mat_grayscale(
+                gray_scale_conversion_code)
+            corr = _calculate_correlation_cvmat(image_i_gray, template_gray)
+            if corr > correlation_limit:
+                skipped_frame_count += 1
+                continue
+            image = image_i
+            break
 
-        pass
-        # if total_frame > batch_size:
-        #     with lock_video_capture:
-        #         video_capture.set_position_frame(worker_frame_start)
-        #         frame_list = [video_capture.read() for i in range(0, batch_size)]
-        #         worker_frame_start += batch_size
-        #     total_frame -= batch_size
-        # else:
-        #     with lock_video_capture:
-        #         video_capture.set_position_frame(worker_frame_start)
-        #         frame_list = [video_capture.read() for i in range(0, total_frame)]
-        #     total_frame = 0
-        # for frame in frame_list:
-        #     pass
-            # frame_sharpness_ctype[int(frame.position_frame)] = \
-            #     _calculate_sharpness_cvmat(
-            #         frame.get_cv_mat_grayscale(gray_scale_conversion_code),
-            #         kernel_x, kernel_y)
-        # with progress_value.get_lock():
-        #     progress_value.value += len(frame_list) / frame_count
-    pass
+        # found the image
+        if image is None:
+            need_more_frame = True
+            continue
+
+        # matched
+        # logging.info('proc [%d] matched %d -> %d' %
+        #              (os.getpid(), int(template.position_frame), int(image.position_frame)))
+        print('proc [%d] matched %d -> %d' %
+              (os.getpid(), int(template.position_frame), int(image.position_frame)))
+
+        # remove unmatched
+        buffer.popleft()
+        for i in range(0, skipped_frame_count):
+            f = buffer.popleft()  # type: CVFrame
+            if f.position_frame < worker_frame_end - frame_rate / 2:
+                frame_acceptance_ctype[
+                    int(f.position_frame) - frame_start] = False
+
+        with progress_value.get_lock():
+            progress_value.value += (skipped_frame_count + 1) / frame_count
 
 
 class CVCorrelation:
     def __init__(self):
         pass
+
+    @staticmethod
+    def calculate_correlation_video_capture(cv_video_capture: CVVideoCapture,
+                                            correlation_limit,
+                                            frame_acceptance_np: np.ndarray,
+                                            frame_start=0, frame_end=None,
+                                            batch_size=100,
+                                            gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
+                                            progress_tracker:
+                                            CVProgressTracker = None):
+        frame_count = int(cv_video_capture.get_frame_count())
+        if frame_end:
+            cv_video_capture.set_position_frame(frame_start)
+            frame_count = min(frame_end - frame_start, frame_count)
+            frame_count = max(frame_count, 0)
+
+        if progress_tracker:
+            progress_tracker.running = True
+
+        frame_acceptance_ctype = multiprocessing.Array('b',
+                                                       frame_acceptance_np.tolist())
+        progress_value = multiprocessing.Value('d')
+        progress_value.value = 0
+        lock_video_capture = multiprocessing.RLock()
+
+        worker_count = multiprocessing.cpu_count()
+        task_per_worker = int(frame_count / worker_count)
+        args_list = [(task_per_worker * i, task_per_worker * (i + 1),
+                      frame_start, frame_count, batch_size,
+                      correlation_limit,
+                      frame_acceptance_ctype,
+                      cv_video_capture.file_handle,
+                      progress_value,
+                      lock_video_capture,
+                      gray_scale_conversion_code)
+                     for i in range(0, worker_count - 1)]
+        args_list.append((task_per_worker * (worker_count - 1), frame_count,
+                          frame_start, frame_count, batch_size,
+                          correlation_limit,
+                          frame_acceptance_ctype,
+                          cv_video_capture.file_handle,
+                          progress_value,
+                          lock_video_capture,
+                          gray_scale_conversion_code
+                          ))
+
+        processes = [Process(target=_calculate_correlation_capture_worker,
+                             args=arg_tuple) for arg_tuple in args_list]
+
+        def update_progress_tracker():
+            progress_tracker.progress = progress_value.value
+
+        progress_timer = RepeatingTimer(0.5, update_progress_tracker)
+
+        if progress_tracker:
+            progress_timer.start()
+
+        if progress_tracker:
+            progress_tracker.running = True
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
+
+        print('final pass')
+        progress_value.Value = 0
+        _calculate_correlation_capture_worker(frame_start, frame_end,
+                                              frame_start, frame_count,
+                                              batch_size,
+                                              correlation_limit,
+                                              frame_acceptance_ctype,
+                                              cv_video_capture.file_handle,
+                                              progress_value,
+                                              lock_video_capture,
+                                              gray_scale_conversion_code)
+        if progress_tracker:
+            progress_timer.cancel()
+            progress_tracker.complete()
+
+        return np.array(frame_acceptance_ctype)
 
     @staticmethod
     def calculate_correlation_frame(cv_frame: CVFrame,

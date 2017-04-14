@@ -54,8 +54,8 @@ if __name__ == '__main__':
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
+    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        frame_start=0, frame_end=10000,
+        frame_start=0, frame_end=1000,
         batch_size=300,
         cv_video_capture=video_cap,
         progress_tracker=progress_tracker
@@ -84,14 +84,14 @@ if __name__ == '__main__':
     print(sharpness_measure.shape[0])
     sharpness_result = cvsharpness.test_sharpness_acceptance(
         # sharpness_measure, 35, sigma_bound=0.5)
-        sharpness_measure, frame_rate * 2, sigma_bound=0.5)
-    print((sharpness_result == 1).sum())
+        sharpness_measure, frame_rate / 2, sigma_bound=0.5)
+    print((sharpness_result == True).sum())
     print(sharpness_result.shape[0])
 
     playback_widget = VideoPlaybackWidget()
     control_widget = VideoPlaybackControlWidget(video_cap)
 
-    frame_buffer = CVFrameBuffer(int(frame_rate*2) + 1)
+    frame_buffer = CVFrameBuffer(int(frame_rate * 2) + 1)
 
 
     def buildFrame(frame: CVFrame):
@@ -103,15 +103,18 @@ if __name__ == '__main__':
             status_str += ' sharpness [%d] ' % sharpness_measure[pos]
             status_str += 'Acc' if sharpness_result[pos] else 'Rej'
         frame_buffer.append(frame)
-        if len(frame_buffer) > 50:
+        if len(frame_buffer) > 100:
             frame_prev_10 = frame_buffer.get_last(1)
             frame_prev_50 = frame_buffer.get_last(50)
+            frame_prev_100 = frame_buffer.get_last(100)
             corr_10 = CVCorrelation.calculate_correlation_frame(frame,
                                                                 frame_prev_10)
             corr_50 = CVCorrelation.calculate_correlation_frame(frame,
                                                                 frame_prev_50)
-            status_str += ' correlation [-10] = %f, [-50] = %f' %\
-                          (corr_10, corr_50)
+            corr_100 = CVCorrelation.calculate_correlation_frame(frame,
+                                                                 frame_prev_100)
+            status_str += ' correlation [-10] = %f [-50] = %f [-100] = %f' % \
+                          (corr_10, corr_50, corr_100)
             pass
         playback_widget.update_status(status_str)
         playback_widget.on_incomingFrame(frame)
