@@ -6,7 +6,7 @@ import cv2
 from PyQt5.QtWidgets import QApplication
 
 from cvutils import CVFrame, CVVideoCapture
-from cvutils.cvcorrelation import CVCorrelation, _calculate_correlation_capture_worker
+from cvutils.cvcorrelation import CVCorrelation, _test_correlation_capture_worker
 from cvutils.cvframebuffer import CVFrameBuffer
 import numpy as np
 
@@ -58,8 +58,8 @@ if __name__ == '__main__':
     #     0.98, result_list, video_cap.file_handle, cv2.COLOR_BGR2GRAY
     # )
     correlation = CVCorrelation()
-    correlation.calculate_correlation_video_capture(video_cap, 0.98,
-                                                    result_list, 0, 2000)
+    correlation.test_correlation_video_capture(video_cap, 0.98,
+                                               result_list, 0, 2000)
 
     playback_widget = VideoPlaybackWidget()
     control_widget = VideoPlaybackControlWidget(video_cap)

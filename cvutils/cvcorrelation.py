@@ -21,17 +21,17 @@ def _calculate_correlation_cvmat(cvmat_grayscale, template_grayscale):
     return result[0][0]
 
 
-def _calculate_correlation_capture_worker(worker_frame_start,
-                                          worker_frame_end,
-                                          frame_start,
-                                          frame_count,
-                                          batch_size,
-                                          correlation_limit,
-                                          frame_acceptance_ctype,
-                                          file_handle,
-                                          progress_value,
-                                          lock_video_capture,
-                                          gray_scale_conversion_code):
+def _test_correlation_capture_worker(worker_frame_start,
+                                     worker_frame_end,
+                                     frame_start,
+                                     frame_count,
+                                     batch_size,
+                                     correlation_limit,
+                                     frame_acceptance_ctype,
+                                     file_handle,
+                                     progress_value,
+                                     lock_video_capture,
+                                     gray_scale_conversion_code):
     video_capture = CVVideoCapture(file_handle)
     video_capture.set_position_frame(worker_frame_start)
     frame_rate = video_capture.get_frame_rate()
@@ -42,8 +42,7 @@ def _calculate_correlation_capture_worker(worker_frame_start,
         if need_more_frame:
             # read in until the end
             if current_frame < worker_frame_end:
-                amount_load = int(
-                    min(batch_size, worker_frame_end - current_frame))
+                amount_load = int(min(batch_size, worker_frame_end - current_frame))
                 with lock_video_capture:
                     buffer += [video_capture.read() for i in
                                range(0, amount_load)]
@@ -58,8 +57,7 @@ def _calculate_correlation_capture_worker(worker_frame_start,
             if len(buffer) == 0:
                 need_more_frame = True
                 continue
-            if frame_acceptance_ctype[
-                int(buffer[0].position_frame - frame_start)]:
+            if frame_acceptance_ctype[int(buffer[0].position_frame - frame_start)]:
                 break
             else:
                 buffer.popleft()
@@ -69,31 +67,33 @@ def _calculate_correlation_capture_worker(worker_frame_start,
         template = next(iter_buffer)
         template_gray = template.get_cv_mat_grayscale(
             gray_scale_conversion_code)
-        image = None
+        frame_final = None
         skipped_frame_count = 0
-        for image_i in iter_buffer:  # type: CVFrame
-            if not frame_acceptance_ctype[int(image_i.position_frame - frame_start)]:
+        for frame_i in iter_buffer:  # type: CVFrame
+            if not frame_acceptance_ctype[int(frame_i.position_frame - frame_start)]:
                 skipped_frame_count += 1
                 continue
-            image_i_gray = image_i.get_cv_mat_grayscale(
+            frame_i_gray = frame_i.get_cv_mat_grayscale(
                 gray_scale_conversion_code)
-            corr = _calculate_correlation_cvmat(image_i_gray, template_gray)
+            corr = _calculate_correlation_cvmat(frame_i_gray, template_gray)
             if corr > correlation_limit:
                 skipped_frame_count += 1
                 continue
-            image = image_i
+            frame_final = frame_i
             break
 
-        # found the image
-        if image is None:
+        # found the frame
+        if frame_final is None:
             need_more_frame = True
             continue
 
         # matched
         # logging.info('proc [%d] matched %d -> %d' %
-        #              (os.getpid(), int(template.position_frame), int(image.position_frame)))
-        print('proc [%d] matched %d -> %d' %
-              (os.getpid(), int(template.position_frame), int(image.position_frame)))
+        #              (os.getpid(), int(template.position_frame), int(frame.position_frame)))
+        print('correlation process [%d] matched %d -> %d' %
+              (os.getpid(),
+               int(template.position_frame),
+               int(frame_final.position_frame)))
 
         # remove unmatched
         buffer.popleft()
@@ -112,14 +112,13 @@ class CVCorrelation:
         pass
 
     @staticmethod
-    def calculate_correlation_video_capture(cv_video_capture: CVVideoCapture,
-                                            correlation_limit,
-                                            frame_acceptance_np: np.ndarray,
-                                            frame_start=0, frame_end=None,
-                                            batch_size=100,
-                                            gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
-                                            progress_tracker:
-                                            CVProgressTracker = None):
+    def test_correlation_video_capture(cv_video_capture: CVVideoCapture,
+                                       correlation_limit,
+                                       frame_acceptance_np: np.ndarray,
+                                       frame_start=0, frame_end=None,
+                                       batch_size=100,
+                                       gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
+                                       progress_tracker: CVProgressTracker = None):
         frame_count = int(cv_video_capture.get_frame_count())
         if frame_end:
             cv_video_capture.set_position_frame(frame_start)
@@ -156,7 +155,7 @@ class CVCorrelation:
                           gray_scale_conversion_code
                           ))
 
-        processes = [Process(target=_calculate_correlation_capture_worker,
+        processes = [Process(target=_test_correlation_capture_worker,
                              args=arg_tuple) for arg_tuple in args_list]
 
         def update_progress_tracker():
@@ -176,15 +175,15 @@ class CVCorrelation:
 
         print('final pass')
         progress_value.Value = 0
-        _calculate_correlation_capture_worker(frame_start, frame_end,
-                                              frame_start, frame_count,
-                                              batch_size,
-                                              correlation_limit,
-                                              frame_acceptance_ctype,
-                                              cv_video_capture.file_handle,
-                                              progress_value,
-                                              lock_video_capture,
-                                              gray_scale_conversion_code)
+        _test_correlation_capture_worker(frame_start, frame_end,
+                                         frame_start, frame_count,
+                                         batch_size,
+                                         correlation_limit,
+                                         frame_acceptance_ctype,
+                                         cv_video_capture.file_handle,
+                                         progress_value,
+                                         lock_video_capture,
+                                         gray_scale_conversion_code)
         if progress_tracker:
             progress_timer.cancel()
             progress_tracker.complete()

@@ -152,23 +152,33 @@ class CVSharpness:
 
     @staticmethod
     def test_sharpness_acceptance(sharpness_calculated: np.ndarray,
-                                  frame_window_size, sigma_bound=1.0,
+                                  frame_window_size, z_score=1.0,
+                                  median_absolute_deviation=True,
                                   progress_tracker: CVProgressTracker = None):
-        # only reject if sharpness < (-sigma_bound * \sigma)
+        # single sided, only reject if sharpness < (-sigma_bound * \sigma)
+        # median absolute deviation ref http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
         frame_window_size = round(frame_window_size)
-        sigma_bound = abs(sigma_bound)
+        sigma_bound = abs(z_score)
         result = np.array([], dtype=np.bool_)
         frame_count = sharpness_calculated.shape[0]
         if progress_tracker:
             progress_tracker.running = True
         for i in range(0, frame_count, frame_window_size):
-            window = sharpness_calculated[i:i + min(frame_window_size,
-                                                    frame_count - i)]
+            window = sharpness_calculated[i: i + min(frame_window_size, frame_count - i)]  # type: np.ndarray
             result_window = np.ones_like(window, dtype=np.bool_)
-            window_mean = window.mean()
-            window_std = window.std()
-            diff = (window - window_mean)
-            result_window[diff < -sigma_bound * window_std] = False
+            if median_absolute_deviation:
+                window_median = np.median(window)
+                diff = window - window_median
+                abs_diff = np.abs(diff)
+                median_deviation = np.median(abs_diff)
+                window_z_score = \
+                    (0.6745 * diff) / median_deviation if median_deviation else 0.
+                result_window[window_z_score < -sigma_bound] = False
+            else:
+                window_mean = window.mean()
+                window_std = window.std()
+                diff = (window - window_mean)
+                result_window[diff < -sigma_bound * window_std] = False
             result = np.concatenate((result, result_window))
             if progress_tracker:
                 progress_tracker.progress = i / frame_count
