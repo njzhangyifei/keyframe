@@ -54,8 +54,8 @@ if __name__ == '__main__':
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
+    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -83,8 +83,7 @@ if __name__ == '__main__':
     print('frame count = ' + str(video_cap.get_frame_count()))
     print(sharpness_measure.shape[0])
     sharpness_result = cvsharpness.test_sharpness_acceptance(
-        # sharpness_measure, 35, sigma_bound=0.5)
-        sharpness_measure, frame_rate / 2, sigma_bound=0.5)
+        sharpness_measure, frame_rate, z_score=1.0)
     print((sharpness_result == True).sum())
     print(sharpness_result.shape[0])
 

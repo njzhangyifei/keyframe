@@ -100,8 +100,7 @@ def _test_correlation_capture_worker(worker_frame_start,
         for i in range(0, skipped_frame_count):
             f = buffer.popleft()  # type: CVFrame
             if f.position_frame < worker_frame_end - frame_rate / 2:
-                frame_acceptance_ctype[
-                    int(f.position_frame) - frame_start] = False
+                frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
             progress_value.value += (skipped_frame_count + 1) / frame_count
@@ -188,7 +187,7 @@ class CVCorrelation:
             progress_timer.cancel()
             progress_tracker.complete()
 
-        return np.array(frame_acceptance_ctype)
+        return np.array(frame_acceptance_ctype, dtype=np.bool_)
 
     @staticmethod
     def calculate_correlation_frame(cv_frame: CVFrame,

@@ -6,7 +6,8 @@ import cv2
 from PyQt5.QtWidgets import QApplication
 
 from cvutils import CVFrame, CVVideoCapture
-from cvutils.cvcorrelation import CVCorrelation, _test_correlation_capture_worker
+from cvutils.cvcorrelation import CVCorrelation, \
+    _test_correlation_capture_worker
 from cvutils.cvframebuffer import CVFrameBuffer
 import numpy as np
 
@@ -23,14 +24,15 @@ if __name__ == '__main__':
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
+    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
 
     def callback(arg):
         print(arg.progress)
+
 
     progress_tracker = CVProgressTracker(callback)
 
@@ -58,21 +60,22 @@ if __name__ == '__main__':
     #     0.98, result_list, video_cap.file_handle, cv2.COLOR_BGR2GRAY
     # )
     correlation = CVCorrelation()
-    correlation.test_correlation_video_capture(video_cap, 0.98,
-                                               result_list, 0, 2000)
+    result_list = \
+        correlation.test_correlation_video_capture(video_cap, 0.98, result_list, 0, 2000)
 
     playback_widget = VideoPlaybackWidget()
     control_widget = VideoPlaybackControlWidget(video_cap)
 
-    frame_buffer = CVFrameBuffer(int(frame_rate*2) + 1)
+    frame_buffer = CVFrameBuffer(int(frame_rate * 2) + 1)
 
 
     def buildFrame(frame: CVFrame):
         pos = int(frame.position_frame)
         if pos < 2000 and result_list[pos]:
-            control_widget.playback_timer.timeout.emit()
-        else:
+            # control_widget.playback_timer.timeout.emit()
             playback_widget.on_incomingFrame(frame)
+            # else:
+
 
     # control_widget.incomingFrame.connect(playback_widget.on_incomingFrame)
     control_widget.incomingFrame.connect(buildFrame)
@@ -80,6 +83,3 @@ if __name__ == '__main__':
     playback_widget.show()
     control_widget.show()
     sys.exit(app.exec_())
-
-
-
