@@ -19,6 +19,7 @@ from sfmkeyframe.view.VideoPlaybackControlWidget import \
     VideoPlaybackControlWidget
 from sfmkeyframe.view.VideoPlaybackWidget import VideoPlaybackWidget
 
+
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     logging.info('test')
@@ -27,7 +28,10 @@ if __name__ == '__main__':
     # ex.show()
     # filename = select_file()[0]
     filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    filename_out = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data' \
+               '/GP017728_out.MP4'
     # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
+    # filename_out = '/home/yifei/develop/sealab/keyframe/data/GP017728_out.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -83,10 +87,30 @@ if __name__ == '__main__':
     optical_flow = CVOpticalFlow(feature_params, lk_params)
     result_arr = \
         optical_flow.test_optical_flow_video_capture \
-            (video_cap, 10, result_arr,
+            (video_cap, 20, result_arr,
              frame_start=0, frame_end=num_frames)
     print("optical flow done")
     print("number of frames left [%d]" % (result_arr == 1).sum())
+
+    # Define the codec and create VideoWriter object
+    codec = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter(filename_out, codec, video_cap.get_frame_rate(),
+                          (int(video_cap.get_frame_width()),
+                           int(video_cap.get_frame_height())))
+
+    while video_cap.is_open:
+        original_frame = video_cap.read()
+        if original_frame is None:
+            break
+        pos = int(original_frame.position_frame)
+        if pos < num_frames:
+            if result_arr[pos]:
+                out.write(original_frame)
+        else:
+            break
+
+    out.release()
+
 
     def filter_func(frame):
         if frame is None:
