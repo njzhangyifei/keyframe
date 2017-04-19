@@ -160,7 +160,7 @@ class CVCorrelation:
         def update_progress_tracker():
             progress_tracker.progress = progress_value.value
 
-        progress_timer = RepeatingTimer(0.5, update_progress_tracker)
+        progress_timer = RepeatingTimer(0.1, update_progress_tracker)
 
         if progress_tracker:
             progress_timer.start()

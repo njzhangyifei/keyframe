@@ -1,4 +1,6 @@
+import logging
 import multiprocessing
+import os
 from multiprocessing import RLock, Process
 
 import cv2
@@ -6,7 +8,7 @@ import numpy as np
 
 from cvutils import CVVideoCapture
 from cvutils.cvprogresstracker import CVProgressTracker
-from utils import RepeatingTimer
+from utils import RepeatingTimer, stats
 from .cvframe import CVFrame
 
 
@@ -38,9 +40,8 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
                 # logging.info('Process %d - Reading %d frames from '
                 #              '%d', os.getpid(), batch_size,
                 #              worker_frame_start)
-                # print('Process %d - Reading %d frames from '
-                #       '%d', os.getpid(), batch_size,
-                #       worker_frame_start)
+                print('[Sharpness] Process %d - Reading %d frames from '
+                      '%d' % (os.getpid(), batch_size, worker_frame_start))
                 video_capture.set_position_frame(worker_frame_start)
                 frame_list = [video_capture.read() for i in range(0, batch_size)]
                 worker_frame_start += batch_size
@@ -157,7 +158,7 @@ class CVSharpness:
                                   progress_tracker: CVProgressTracker = None):
         # single sided, only reject if sharpness < (-sigma_bound * \sigma)
         # median absolute deviation ref http://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
-        frame_window_size = round(frame_window_size)
+        frame_window_size = int(round(frame_window_size))
         sigma_bound = abs(z_score)
         result = np.array([], dtype=np.bool_)
         frame_count = sharpness_calculated.shape[0]
@@ -167,7 +168,7 @@ class CVSharpness:
             window = sharpness_calculated[i: i + min(frame_window_size, frame_count - i)]  # type: np.ndarray
             result_window = np.ones_like(window, dtype=np.bool_)
             if median_absolute_deviation:
-                window_median = np.median(window)
+                window_median = np.median(stats.trimboth(window, 0.1))
                 diff = window - window_median
                 abs_diff = np.abs(diff)
                 median_deviation = np.median(abs_diff)
@@ -175,7 +176,7 @@ class CVSharpness:
                     (0.6745 * diff) / median_deviation if median_deviation else 0.
                 result_window[window_z_score < -sigma_bound] = False
             else:
-                window_mean = window.mean()
+                window_mean = stats.trimboth(window, 0.1).mean()
                 window_std = window.std()
                 diff = (window - window_mean)
                 result_window[diff < -sigma_bound * window_std] = False
