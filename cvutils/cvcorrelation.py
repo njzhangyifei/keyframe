@@ -61,12 +61,15 @@ def _test_correlation_capture_worker(worker_frame_start,
         while True:
             if len(buffer) == 0:
                 need_more_frame = True
-                continue
+                break
             if frame_acceptance_ctype[int(buffer[0].position_frame - frame_start)]:
                 worker_last_candidate = buffer[0]
                 break
             else:
                 buffer.popleft()
+
+        if need_more_frame:
+            continue
 
         # greedy, find correlation match for first one
         iter_buffer = iter(buffer)
