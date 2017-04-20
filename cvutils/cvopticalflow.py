@@ -25,6 +25,8 @@ def _test_optical_flow_capture_worker(worker_frame_start,
                                       gray_scale_conversion_code,
                                       skip_window_both_end=0
                                       ):
+    if worker_frame_start > worker_frame_end:
+        return
     video_capture = CVVideoCapture(file_handle)
     video_capture.set_position_frame(worker_frame_start)
     frame_rate = video_capture.get_frame_rate()
@@ -36,8 +38,7 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         if need_more_frame:
             # read in until the end
             if current_frame < worker_frame_end:
-                amount_load = int(
-                    min(batch_size, worker_frame_end - current_frame))
+                amount_load = int(min(batch_size, worker_frame_end - current_frame))
                 with lock_video_capture:
                     buffer += [video_capture.read() for i in
                                range(0, amount_load)]
@@ -52,8 +53,8 @@ def _test_optical_flow_capture_worker(worker_frame_start,
             if len(buffer) == 0:
                 need_more_frame = True
                 continue
-            if frame_acceptance_ctype[
-                int(buffer[0].position_frame - frame_start)]:
+            if frame_acceptance_ctype[int(buffer[0].position_frame - frame_start)]:
+                worker_last_candidate = buffer[0]
                 break
             else:
                 buffer.popleft()
@@ -192,7 +193,6 @@ class CVOpticalFlow:
 
         skip_window_both_end = int(cv_video_capture.get_frame_rate())
         worker_count = multiprocessing.cpu_count()
-        worker_count=1
         task_per_worker = int(frame_count / worker_count)
         args_list = [(task_per_worker * i, task_per_worker * (i + 1),
                       frame_start, frame_count, batch_size,

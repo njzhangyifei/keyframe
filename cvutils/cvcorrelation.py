@@ -34,6 +34,8 @@ def _test_correlation_capture_worker(worker_frame_start,
                                      gray_scale_conversion_code,
                                      skip_window_both_end=0
                                      ):
+    if worker_frame_start > worker_frame_end:
+        return
     video_capture = CVVideoCapture(file_handle)
     video_capture.set_position_frame(worker_frame_start)
     buffer = deque()
@@ -61,6 +63,7 @@ def _test_correlation_capture_worker(worker_frame_start,
                 need_more_frame = True
                 continue
             if frame_acceptance_ctype[int(buffer[0].position_frame - frame_start)]:
+                worker_last_candidate = buffer[0]
                 break
             else:
                 buffer.popleft()
@@ -188,7 +191,7 @@ class CVCorrelation:
         def update_progress_tracker():
             progress_tracker.progress = progress_value.value
 
-        # progress_timer = RepeatingTimer(0.1, update_progress_tracker)
+        progress_timer = RepeatingTimer(0.1, update_progress_tracker)
 
         if progress_tracker:
             progress_timer.start()
