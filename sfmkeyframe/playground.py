@@ -4,6 +4,8 @@ import cv2
 import sys
 from PyQt5.QtWidgets import QFileDialog, QApplication
 
+from sfmkeyframe.view.VideoPlaybackWidget import VideoPlaybackWidget
+
 
 def select_file():
     dlg = QFileDialog()
@@ -33,6 +35,7 @@ def main(filename):
     p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
     # Create a mask image for drawing purposes
     mask = np.zeros_like(old_frame)
+
     while (1):
         ret, frame = cap.read()
 
@@ -68,11 +71,11 @@ def main(filename):
         if k == 27:
             break
 
-        if int(cap.get(cv2.CAP_PROP_POS_FRAMES)) % 100 == 0:
-            p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
-            mask = np.zeros_like(old_frame)
-        else:
-            p0 = good_new.reshape(-1, 1, 2)
+        # if int(cap.get(cv2.CAP_PROP_POS_FRAMES)) % 1 == 0:
+        p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+        mask = np.zeros_like(old_frame)
+        # else:
+            # p0 = good_new.reshape(-1, 1, 2)
 
         # Now update the previous frame and previous points
         old_gray = frame_gray.copy()

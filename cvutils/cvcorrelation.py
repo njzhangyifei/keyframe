@@ -36,10 +36,10 @@ def _test_correlation_capture_worker(worker_frame_start,
                                      ):
     video_capture = CVVideoCapture(file_handle)
     video_capture.set_position_frame(worker_frame_start)
-    frame_rate = video_capture.get_frame_rate()
     buffer = deque()
     current_frame = worker_frame_start
     need_more_frame = True
+    worker_last_candidate = None
     while True:
         if need_more_frame:
             # read in until the end
@@ -60,8 +60,7 @@ def _test_correlation_capture_worker(worker_frame_start,
             if len(buffer) == 0:
                 need_more_frame = True
                 continue
-            if frame_acceptance_ctype[
-                int(buffer[0].position_frame - frame_start)]:
+            if frame_acceptance_ctype[int(buffer[0].position_frame - frame_start)]:
                 break
             else:
                 buffer.popleft()
@@ -96,6 +95,8 @@ def _test_correlation_capture_worker(worker_frame_start,
         if frame_final is None:
             need_more_frame = True
             continue
+        else:
+            worker_last_candidate = frame_final
 
         # matched
         # logging.info('proc [%d] matched %d -> %d' %
@@ -119,6 +120,14 @@ def _test_correlation_capture_worker(worker_frame_start,
 
         with progress_value.get_lock():
             progress_value.value += (skipped_frame_count + 1) / frame_count
+
+    # purge the last bit of the acceptance array
+    for i in range(int(worker_last_candidate.position_frame+1),
+                   worker_frame_end - skip_window_both_end):
+        frame_acceptance_ctype[i] = False
+
+    with lock_video_capture:
+        video_capture.release()
 
 
 class CVCorrelation:
@@ -179,7 +188,7 @@ class CVCorrelation:
         def update_progress_tracker():
             progress_tracker.progress = progress_value.value
 
-        progress_timer = RepeatingTimer(0.1, update_progress_tracker)
+        # progress_timer = RepeatingTimer(0.1, update_progress_tracker)
 
         if progress_tracker:
             progress_timer.start()
