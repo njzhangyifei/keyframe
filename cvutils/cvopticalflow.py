@@ -65,8 +65,7 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         # greedy
         iter_buffer = iter(buffer)
         frame_initial = next(iter_buffer)  # type: CVFrame
-        frame_initial_gray = frame_initial.get_cv_mat_grayscale(
-            gray_scale_conversion_code)
+        frame_initial_gray = frame_initial.get_cv_mat_grayscale(gray_scale_conversion_code)
         previous_frame_gray = frame_initial_gray.copy()
         previous_frame_features = cv2.goodFeaturesToTrack(previous_frame_gray,
                                                           mask=None,
@@ -103,16 +102,19 @@ def _test_optical_flow_capture_worker(worker_frame_start,
                                                      0.1).mean()
             integral_mean_distance += mean_immediate_distance
 
-            # print('optical flow process [%d] matching %d -> %d, int distance '
-            #       '= %d' %
-            #       (os.getpid(), int(frame_initial.position_frame),
-            #        int(frame_i.position_frame), integral_mean_distance))
+            print('optical flow process [%d] matching %d[%d] -> %d[%d], int distance '
+                 '= %d' %
+                 (os.getpid(), 
+                  int(frame_initial.position_frame),
+                  frame_acceptance_ctype[int(frame_initial.position_frame - frame_start)],
+                  int(frame_i.position_frame), 
+                  frame_acceptance_ctype[int(frame_i.position_frame - frame_start)],
+                  integral_mean_distance))
             if integral_mean_distance < distance_limit:
                 if frame_acceptance_ctype[int(frame_i.position_frame - frame_start)]:
                     # we need to maintain the last accepted one as candidate
                     # and the corresponding skip count till that candidate
-                    skipped_frame_count += int(
-                        frame_i.position_frame - frame_last_candidate.position_frame)
+                    skipped_frame_count += int(frame_i.position_frame - frame_last_candidate.position_frame)
                     frame_last_candidate = frame_i
 
                 previous_frame_gray = frame_i_gray.copy()
@@ -136,9 +138,11 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         # matched
         # logging.info('proc [%d] matched %d -> %d' %
         #              (os.getpid(), int(template.position_frame), int(image.position_frame)))
-        print('optical flow process [%d] matched %d -> %d, int distance = %d' %
+        print('optical flow process [%d] matched %d -> %d, skipped %d, int distance = %d' %
               (os.getpid(), int(frame_initial.position_frame),
-               int(frame_candidate.position_frame), integral_mean_distance))
+               int(frame_candidate.position_frame), 
+               skipped_frame_count,
+               integral_mean_distance))
 
         # remove unmatched
         buffer.popleft()
@@ -146,10 +150,8 @@ def _test_optical_flow_capture_worker(worker_frame_start,
             f = buffer.popleft()  # type: CVFrame
             # special handling for greedy algorithm
             if (f.position_frame < worker_frame_start + skip_window_both_end) or \
-                    (
-                        f.position_frame > worker_frame_end - skip_window_both_end):
+                    (f.position_frame > worker_frame_end - skip_window_both_end):
                 # skip first and last frame_rate frames on each worker
-                skipped_frame_count += 1
                 continue
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
@@ -157,9 +159,10 @@ def _test_optical_flow_capture_worker(worker_frame_start,
             progress_value.value += (skipped_frame_count + 1) / frame_count
 
     # purge the last bit of the acceptance array
+    print('last candidate %d' % worker_last_candidate.position_frame)
     for i in range(int(worker_last_candidate.position_frame+1),
                    worker_frame_end - skip_window_both_end):
-        frame_acceptance_ctype[i] = False
+        frame_acceptance_ctype[i - frame_start] = False
 
     with lock_video_capture:
         video_capture.release()

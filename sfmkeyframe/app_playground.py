@@ -83,7 +83,7 @@ if __name__ == '__main__':
     print('frame count = ' + str(video_cap.get_frame_count()))
     print(sharpness_measure.shape[0])
     sharpness_result = cvsharpness.test_sharpness_acceptance(
-        sharpness_measure, frame_rate, z_score=1.0)
+        sharpness_measure, frame_rate / 2, z_score=1.5)
     print((sharpness_result == True).sum())
     print(sharpness_result.shape[0])
 

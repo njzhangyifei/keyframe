@@ -120,7 +120,6 @@ def _test_correlation_capture_worker(worker_frame_start,
             if (f.position_frame < worker_frame_start + skip_window_both_end) or \
                     (f.position_frame > worker_frame_end - skip_window_both_end):
                 # skip first and last frame_rate frames on each worker
-                skipped_frame_count += 1
                 continue
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 

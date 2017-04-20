@@ -30,11 +30,11 @@ if __name__ == '__main__':
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    filename_out = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data' \
-               '/GP017728_out.avi'
-    # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
-    # filename_out = '/home/yifei/develop/sealab/keyframe/data/GP017728_out.avi'
+    #  filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    #  filename_out = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data' \
+               #  '/GP017728_out.avi'
+    filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
+    filename_out = '/home/yifei/develop/sealab/keyframe/data/GP017728_out.avi'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
