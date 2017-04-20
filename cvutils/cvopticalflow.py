@@ -22,7 +22,9 @@ def _test_optical_flow_capture_worker(worker_frame_start,
                                       file_handle,
                                       progress_value,
                                       lock_video_capture,
-                                      gray_scale_conversion_code):
+                                      gray_scale_conversion_code,
+                                      skip_window_both_end=0
+                                      ):
     video_capture = CVVideoCapture(file_handle)
     video_capture.set_position_frame(worker_frame_start)
     frame_rate = video_capture.get_frame_rate()
@@ -69,6 +71,11 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         skipped_frame_count = 0
         mean_distance = 0
         for frame_i in iter_buffer:  # type: CVFrame
+            if (frame_i.position_frame < worker_frame_start + skip_window_both_end) or \
+                    (frame_i.position_frame > worker_frame_end - skip_window_both_end):
+                # skip first and last frame_rate frames on each worker
+                skipped_frame_count += 1
+                continue
             if not frame_acceptance_ctype[int(frame_i.position_frame - frame_start)]:
                 # skipped
                 skipped_frame_count += 1
@@ -111,7 +118,7 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         # matched
         # logging.info('proc [%d] matched %d -> %d' %
         #              (os.getpid(), int(template.position_frame), int(image.position_frame)))
-        print('proc [%d] matched %d -> %d, distance = %d' %
+        print('optical flow process [%d] matched %d -> %d, distance = %d' %
               (os.getpid(), int(frame_initial.position_frame),
                int(frame_final.position_frame), mean_distance))
 
@@ -119,9 +126,13 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         buffer.popleft()
         for i in range(0, skipped_frame_count):
             f = buffer.popleft()  # type: CVFrame
-            if f.position_frame < worker_frame_end - frame_rate / 2:
-                frame_acceptance_ctype[
-                    int(f.position_frame) - frame_start] = False
+            # special handling for greedy algorithm
+            if (f.position_frame < worker_frame_start + skip_window_both_end) or \
+                    (f.position_frame > worker_frame_end - skip_window_both_end):
+                # skip first and last frame_rate frames on each worker
+                skipped_frame_count += 1
+                continue
+            frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
             progress_value.value += (skipped_frame_count + 1) / frame_count
@@ -138,7 +149,7 @@ class CVOpticalFlow:
                                         distance_limit,
                                         frame_acceptance_np: np.ndarray,
                                         frame_start=0, frame_end=None,
-                                        batch_size=100,
+                                        batch_size=200,
                                         gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
                                         progress_tracker: CVProgressTracker = None):
         frame_count = int(cv_video_capture.get_frame_count())

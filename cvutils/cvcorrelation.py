@@ -31,7 +31,9 @@ def _test_correlation_capture_worker(worker_frame_start,
                                      file_handle,
                                      progress_value,
                                      lock_video_capture,
-                                     gray_scale_conversion_code):
+                                     gray_scale_conversion_code,
+                                     skip_window_both_end=0
+                                     ):
     video_capture = CVVideoCapture(file_handle)
     video_capture.set_position_frame(worker_frame_start)
     frame_rate = video_capture.get_frame_rate()
@@ -42,7 +44,8 @@ def _test_correlation_capture_worker(worker_frame_start,
         if need_more_frame:
             # read in until the end
             if current_frame < worker_frame_end:
-                amount_load = int(min(batch_size, worker_frame_end - current_frame))
+                amount_load = int(
+                    min(batch_size, worker_frame_end - current_frame))
                 with lock_video_capture:
                     buffer += [video_capture.read() for i in
                                range(0, amount_load)]
@@ -57,7 +60,8 @@ def _test_correlation_capture_worker(worker_frame_start,
             if len(buffer) == 0:
                 need_more_frame = True
                 continue
-            if frame_acceptance_ctype[int(buffer[0].position_frame - frame_start)]:
+            if frame_acceptance_ctype[
+                int(buffer[0].position_frame - frame_start)]:
                 break
             else:
                 buffer.popleft()
@@ -70,7 +74,13 @@ def _test_correlation_capture_worker(worker_frame_start,
         frame_final = None
         skipped_frame_count = 0
         for frame_i in iter_buffer:  # type: CVFrame
+            if (frame_i.position_frame < worker_frame_start + skip_window_both_end) or \
+                    (frame_i.position_frame > worker_frame_end - skip_window_both_end):
+                # skip first and last frame_rate frames on each worker
+                skipped_frame_count += 1
+                continue
             if not frame_acceptance_ctype[int(frame_i.position_frame - frame_start)]:
+                # skip rejected ones
                 skipped_frame_count += 1
                 continue
             frame_i_gray = frame_i.get_cv_mat_grayscale(
@@ -99,8 +109,13 @@ def _test_correlation_capture_worker(worker_frame_start,
         buffer.popleft()
         for i in range(0, skipped_frame_count):
             f = buffer.popleft()  # type: CVFrame
-            if f.position_frame < worker_frame_end - frame_rate / 2:
-                frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
+            # special handling for greedy algorithm
+            if (f.position_frame < worker_frame_start + skip_window_both_end) or \
+                    (f.position_frame > worker_frame_end - skip_window_both_end):
+                # skip first and last frame_rate frames on each worker
+                skipped_frame_count += 1
+                continue
+            frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
             progress_value.value += (skipped_frame_count + 1) / frame_count
@@ -115,7 +130,7 @@ class CVCorrelation:
                                        correlation_limit,
                                        frame_acceptance_np: np.ndarray,
                                        frame_start=0, frame_end=None,
-                                       batch_size=100,
+                                       batch_size=200,
                                        gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
                                        progress_tracker: CVProgressTracker = None):
         frame_count = int(cv_video_capture.get_frame_count())
@@ -133,6 +148,7 @@ class CVCorrelation:
         progress_value.value = 0
         lock_video_capture = multiprocessing.RLock()
 
+        skip_window_both_end = int(cv_video_capture.get_frame_rate())
         worker_count = multiprocessing.cpu_count()
         task_per_worker = int(frame_count / worker_count)
         args_list = [(task_per_worker * i, task_per_worker * (i + 1),
@@ -142,7 +158,9 @@ class CVCorrelation:
                       cv_video_capture.file_handle,
                       progress_value,
                       lock_video_capture,
-                      gray_scale_conversion_code)
+                      gray_scale_conversion_code,
+                      skip_window_both_end
+                      )
                      for i in range(0, worker_count - 1)]
         args_list.append((task_per_worker * (worker_count - 1), frame_count,
                           frame_start, frame_count, batch_size,
@@ -151,7 +169,8 @@ class CVCorrelation:
                           cv_video_capture.file_handle,
                           progress_value,
                           lock_video_capture,
-                          gray_scale_conversion_code
+                          gray_scale_conversion_code,
+                          skip_window_both_end
                           ))
 
         processes = [Process(target=_test_correlation_capture_worker,

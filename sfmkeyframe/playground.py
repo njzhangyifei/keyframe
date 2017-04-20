@@ -16,7 +16,7 @@ def main(filename):
     # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
     cap = cv2.VideoCapture(filename)
     # params for ShiTomasi corner detection
-    feature_params = dict(maxCorners=300,
+    feature_params = dict(maxCorners=500,
                           qualityLevel=0.3,
                           minDistance=7,
                           blockSize=7)

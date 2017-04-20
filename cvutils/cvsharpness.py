@@ -81,7 +81,7 @@ class CVSharpness:
     def calculate_sharpness_video_capture(self,
                                           cv_video_capture: CVVideoCapture,
                                           frame_start=0, frame_end=None,
-                                          batch_size=100,
+                                          batch_size=200,
                                           gray_scale_conversion_code=cv2.COLOR_BGR2GRAY,
                                           progress_tracker:
                                           CVProgressTracker = None):
