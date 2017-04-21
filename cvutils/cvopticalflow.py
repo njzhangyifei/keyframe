@@ -146,11 +146,11 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         # matched
         # logging.info('proc [%d] matched %d -> %d' %
         #              (os.getpid(), int(template.position_frame), int(image.position_frame)))
-        print('optical flow process [%d] matched %d -> %d, skipped %d, int distance = %d' %
-              (os.getpid(), int(frame_initial.position_frame),
-               int(frame_candidate.position_frame),
-               skipped_count,
-               frame_candidate_distance))
+        # print('optical flow process [%d] matched %d -> %d, skipped %d, int distance = %d' %
+        #       (os.getpid(), int(frame_initial.position_frame),
+        #        int(frame_candidate.position_frame),
+        #        skipped_count,
+        #        frame_candidate_distance))
 
         # we don't want to reject the initial frame
         buffer.popleft()
@@ -208,8 +208,8 @@ class CVOpticalFlow:
         lock_video_capture = multiprocessing.RLock()
 
         skip_window_both_end = int(cv_video_capture.get_frame_rate())
-        worker_count = 1
-        # worker_count = multiprocessing.cpu_count()
+        # worker_count = 1
+        worker_count = multiprocessing.cpu_count()
         task_per_worker = int(frame_count / worker_count)
         args_list = [(task_per_worker * i, task_per_worker * (i + 1),
                       frame_start, frame_count, batch_size,

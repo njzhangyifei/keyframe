@@ -1,3 +1,4 @@
+import datetime
 import logging
 import multiprocessing
 import sys
@@ -30,14 +31,17 @@ if __name__ == '__main__':
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    filename_out = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data' \
-                '/GP017728_out.avi'
+    #  filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    #  filename_out = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data' \
+                #  '/GP017728_out.avi'
     # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     # filename_out = '/home/yifei/develop/sealab/keyframe/data/GP017728_out.avi'
+    filename = '/home/yifei/develop/sealab/keyframe/data/GOPR7728.MP4'
+    filename_out = '/home/yifei/develop/sealab/keyframe/data/GOPR7728_out.avi'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
+    start_time = datetime.datetime.now()
 
     def callback(arg):
         print(arg.progress)
@@ -45,7 +49,8 @@ if __name__ == '__main__':
 
     progress_tracker = CVProgressTracker(callback)
 
-    num_frames = 1000
+    # num_frames = 1000
+    num_frames = int(video_cap.get_frame_count());
     print('frame count = ' + str(video_cap.get_frame_count()))
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
@@ -58,18 +63,26 @@ if __name__ == '__main__':
     print("sharpness done")
     print("number of frames left [%d] / %d" % ((result_arr == 1).sum(), num_frames))
 
+    sharpness_elapsed = datetime.datetime.now() - start_time
+    start_time = datetime.datetime.now()
+
     # result_arr = np.ones([num_frames], dtype=np.bool_)
 
+    progress_tracker = CVProgressTracker(callback)
     correlation = CVCorrelation()
     result_arr = \
         correlation.test_correlation_video_capture(video_cap, 0.985,
                                                    result_arr,
                                                    frame_start=0,
-                                                   frame_end=num_frames)
+                                                   frame_end=num_frames,
+                                                   progress_tracker=progress_tracker
+                                                   )
 
     print("correlation done")
     print("number of frames left [%d] / %d" % ((result_arr == 1).sum(), num_frames))
 
+    correlation_elapsed = datetime.datetime.now() - start_time
+    start_time = datetime.datetime.now()
     # result_arr = np.ones([num_frames], dtype=np.bool_)
 
     # params for ShiTomasi corner detection
@@ -80,11 +93,20 @@ if __name__ == '__main__':
                      criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
 
     optical_flow = CVOpticalFlow(feature_params, lk_params)
+    progress_tracker = CVProgressTracker(callback)
     result_arr = optical_flow.test_optical_flow_video_capture(
-        video_cap, 100, result_arr, frame_start=0, frame_end=num_frames)
+        video_cap, 100, result_arr, frame_start=0, frame_end=num_frames,
+        progress_tracker=progress_tracker
+    )
 
     print("optical flow done")
     print("number of frames left [%d] / %d" % ((result_arr == 1).sum(), num_frames))
+
+    optical_flow_elapsed = datetime.datetime.now() - start_time
+
+    print('sharpness    time [%f seconds]' % sharpness_elapsed.total_seconds())
+    print('correlation  time [%f seconds]' % correlation_elapsed.total_seconds())
+    print('optical flow time [%f seconds]' % optical_flow_elapsed.total_seconds())
 
     # Define the codec and create VideoWriter object
     codec = cv2.VideoWriter_fourcc(*'XVID')

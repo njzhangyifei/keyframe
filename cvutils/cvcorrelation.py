@@ -107,10 +107,10 @@ def _test_correlation_capture_worker(worker_frame_start,
         # matched
         # logging.info('proc [%d] matched %d -> %d' %
         #              (os.getpid(), int(template.position_frame), int(frame.position_frame)))
-        print('correlation process [%d] matched %d -> %d' %
-              (os.getpid(),
-               int(template.position_frame),
-               int(frame_final.position_frame)))
+        # print('correlation process [%d] matched %d -> %d' %
+        #       (os.getpid(),
+        #        int(template.position_frame),
+        #        int(frame_final.position_frame)))
 
         # remove unmatched
         buffer.popleft()
