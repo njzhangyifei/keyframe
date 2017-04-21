@@ -11,15 +11,15 @@ import numpy as np
 import os
 
 from cvutils import CVFrame, CVVideoCapture
+from cvutils.cvmisc import generate_multiprocessing_final_pass_ranges
 from cvutils.cvprogresstracker import CVProgressTracker
-from utils import RepeatingTimer
+from utils import RepeatingTimer, first_occurrence_index, last_occurrence_index
 
 
 def _calculate_correlation_cvmat(cvmat_grayscale, template_grayscale):
     result = cv2.matchTemplate(cvmat_grayscale, template_grayscale,
                                cv2.TM_CCORR_NORMED)
     return result[0][0]
-
 
 def _test_correlation_capture_worker(worker_frame_start,
                                      worker_frame_end,
@@ -129,7 +129,7 @@ def _test_correlation_capture_worker(worker_frame_start,
     # purge the last bit of the acceptance array
     for i in range(int(worker_last_candidate.position_frame+1),
                    worker_frame_end - skip_window_both_end):
-        frame_acceptance_ctype[i] = False
+        frame_acceptance_ctype[i - frame_start] = False
 
     with lock_video_capture:
         video_capture.release()
@@ -159,7 +159,6 @@ class CVCorrelation:
         frame_acceptance_ctype = multiprocessing.Array('b',
                                                        frame_acceptance_np.tolist())
         progress_value = multiprocessing.Value('d')
-        progress_value.value = 0
         lock_video_capture = multiprocessing.RLock()
 
         skip_window_both_end = int(cv_video_capture.get_frame_rate())
@@ -190,11 +189,12 @@ class CVCorrelation:
         processes = [Process(target=_test_correlation_capture_worker,
                              args=arg_tuple) for arg_tuple in args_list]
 
-        def update_progress_tracker():
-            progress_tracker.progress = progress_value.value
+        def update_progress_tracker_first_pass():
+            progress_tracker.progress = progress_value.value * 0.7
 
-        progress_timer = RepeatingTimer(0.1, update_progress_tracker)
+        progress_timer = RepeatingTimer(0.1, update_progress_tracker_first_pass)
 
+        progress_value.value = 0
         if progress_tracker:
             progress_timer.start()
 
@@ -205,22 +205,45 @@ class CVCorrelation:
         for p in processes:
             p.join()
 
+        if progress_tracker:
+            progress_timer.cancel()
+
         print('final pass')
-        progress_value.Value = 0
-        _test_correlation_capture_worker(frame_start, frame_end,
-                                         frame_start, frame_count,
-                                         batch_size,
-                                         correlation_limit,
-                                         frame_acceptance_ctype,
-                                         cv_video_capture.file_handle,
-                                         progress_value,
-                                         lock_video_capture,
-                                         gray_scale_conversion_code)
+
+        final_pass_ranges = generate_multiprocessing_final_pass_ranges \
+            (frame_acceptance_ctype, frame_count, task_per_worker, worker_count, skip_window_both_end)
+
+        final_pass_arg_list = [(range_i[0], range_i[1],
+                                frame_start, frame_count, batch_size,
+                                correlation_limit,
+                                frame_acceptance_ctype,
+                                cv_video_capture.file_handle,
+                                progress_value,
+                                lock_video_capture,
+                                gray_scale_conversion_code,
+                                )
+                               for range_i in final_pass_ranges]
+
+        final_pass_processes = [Process(target=_test_correlation_capture_worker,
+                                        args=arg_tuple) for arg_tuple in final_pass_arg_list]
+
+        def update_progress_tracker_final_pass():
+            progress_tracker.progress = 0.7 + progress_value.value * 0.3
+
+        progress_value.value = 0
+        if progress_tracker:
+            progress_timer.function = update_progress_tracker_final_pass
+
+        for p in final_pass_processes:
+            p.start()
+        for p in final_pass_processes:
+            p.join()
+
         if progress_tracker:
             progress_timer.cancel()
             progress_tracker.complete()
 
-        return np.array(frame_acceptance_ctype, dtype=np.bool_)
+        return np.array(frame_acceptance_ctype, dtype=np.bool_).copy()
 
     @staticmethod
     def calculate_correlation_frame(cv_frame: CVFrame,

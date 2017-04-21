@@ -30,11 +30,11 @@ if __name__ == '__main__':
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    #  filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    #  filename_out = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data' \
-               #  '/GP017728_out.avi'
-    filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
-    filename_out = '/home/yifei/develop/sealab/keyframe/data/GP017728_out.avi'
+    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    filename_out = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data' \
+                '/GP017728_out.avi'
+    # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
+    # filename_out = '/home/yifei/develop/sealab/keyframe/data/GP017728_out.avi'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -45,28 +45,21 @@ if __name__ == '__main__':
 
     progress_tracker = CVProgressTracker(callback)
 
-    num_frames = 2000
+    num_frames = 1000
+    print('frame count = ' + str(video_cap.get_frame_count()))
     cvsharpness = CVSharpness()
     sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
         frame_start=0, frame_end=num_frames,
         cv_video_capture=video_cap,
         progress_tracker=progress_tracker
     )
-    print('frame count = ' + str(video_cap.get_frame_count()))
     print(sharpness_measure.shape[0])
-    sharpness_result = cvsharpness.test_sharpness_acceptance(
-
-        sharpness_measure, frame_rate * 2, z_score=1)
+    result_arr = cvsharpness.test_sharpness_acceptance(sharpness_measure, frame_rate * 2, z_score=1)
     print("sharpness done")
-    print("number of frames left [%d]" % (sharpness_result == 1).sum())
-    #
-    # result_arr = np.ones([num_frames], dtype=np.bool_)
-    result_arr = sharpness_result
+    print("number of frames left [%d] / %d" % ((result_arr == 1).sum(), num_frames))
 
-    # _calculate_correlation_capture_worker(
-    #     0, 1000, video_cap.get_frame_count(),
-    #     0.98, result_list, video_cap.file_handle, cv2.COLOR_BGR2GRAY
-    # )
+    # result_arr = np.ones([num_frames], dtype=np.bool_)
+
     correlation = CVCorrelation()
     result_arr = \
         correlation.test_correlation_video_capture(video_cap, 0.985,
@@ -74,8 +67,8 @@ if __name__ == '__main__':
                                                    frame_start=0,
                                                    frame_end=num_frames)
 
-    # print("correlation done")
-    # print("number of frames left [%d]" % (result_arr == 1).sum())
+    print("correlation done")
+    print("number of frames left [%d] / %d" % ((result_arr == 1).sum(), num_frames))
 
     # result_arr = np.ones([num_frames], dtype=np.bool_)
 
@@ -91,11 +84,11 @@ if __name__ == '__main__':
         video_cap, 100, result_arr, frame_start=0, frame_end=num_frames)
 
     print("optical flow done")
-    print("number of frames left [%d]" % (result_arr == 1).sum())
+    print("number of frames left [%d] / %d" % ((result_arr == 1).sum(), num_frames))
 
     # Define the codec and create VideoWriter object
     codec = cv2.VideoWriter_fourcc(*'XVID')
-    out = cv2.VideoWriter(filename_out, codec, 10,
+    out = cv2.VideoWriter(filename_out, codec, 2,
                           (int(video_cap.get_frame_width()),
                            int(video_cap.get_frame_height())))
 
