@@ -12,8 +12,6 @@ from cvutils.cvprogresstracker import CVProgressTracker
 from cvutils.cvsharpness import CVSharpness
 
 def calculate_all(filename, optical_flow_distance):
-    multiprocessing.set_start_method('spawn')
-
     filename_out = filename + '.out_%d.avi' % optical_flow_distance
 
     video_cap = CVVideoCapture(filename)
@@ -90,11 +88,13 @@ def calculate_all(filename, optical_flow_distance):
 
     optical_flow_elapsed = datetime.datetime.now() - start_time
 
+    print('***')
     print('sharpness    time [%f seconds]' % sharpness_elapsed.total_seconds())
     print('correlation  time [%f seconds]' % correlation_elapsed.total_seconds())
     print('optical flow time [%f seconds]' % optical_flow_elapsed.total_seconds())
+    print('***')
 
-    # Define the codec and create VideoWriter object
+    print('Write to file [%s]' % filename_out)
     codec = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter(filename_out, codec, 2, (int(video_cap.get_frame_width()), int(video_cap.get_frame_height())))
 
@@ -103,18 +103,31 @@ def calculate_all(filename, optical_flow_distance):
         if original_frame is None:
             break
         pos = int(original_frame.position_frame)
+        if pos % 10:
+            print('Writing %.2f %%' % (pos / num_frames * 100))
         if pos < num_frames:
             if result_arr[pos]:
                 out.write(original_frame.cv_mat)
         else:
             break
-
     out.release()
+    print('Write to file done')
 
 if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn')
+
     filename = '/home/yifei/develop/sealab/keyframe/data/GOPR7728.MP4'
     for i in range(110, 200, 10):
+        print('----------------------------------------')
+        print(' * ' + filename)
+        print(' * distance ' + str(i))
+        print('----------------------------------------')
         calculate_all(filename, i)
+
     filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     for i in range(110, 200, 10):
+        print('----------------------------------------')
+        print(' * ' + filename)
+        print(' * distance ' + str(i))
+        print('----------------------------------------')
         calculate_all(filename, i)
