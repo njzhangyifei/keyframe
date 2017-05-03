@@ -10,7 +10,7 @@ from multiprocessing import Process
 import numpy as np
 import os
 
-from cvutils import CVFrame, CVVideoCapture
+from cvutils import CVFrame, CVVideoCapture, CVAcceptanceTest
 from cvutils.cvmisc import generate_multiprocessing_final_pass_ranges
 from cvutils.cvprogresstracker import CVProgressTracker
 from utils import RepeatingTimer, first_occurrence_index, last_occurrence_index
@@ -49,6 +49,8 @@ def _test_correlation_capture_worker(worker_frame_start,
                 amount_load = int(
                     min(batch_size, worker_frame_end - current_frame))
                 with lock_video_capture:
+                    print('[Correlation] Process %d - Reading %d frames from '
+                          '%d' % (os.getpid(), batch_size, current_frame))
                     buffer += [video_capture.read() for i in
                                range(0, amount_load)]
                 current_frame += amount_load
@@ -124,7 +126,7 @@ def _test_correlation_capture_worker(worker_frame_start,
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
-            progress_value.value += (skipped_frame_count + 1) / frame_count
+            progress_value.value += (skipped_frame_count + 1) / (worker_frame_end - worker_frame_start)
 
     # purge the last bit of the acceptance array
     for i in range(int(worker_last_candidate.position_frame+1),
@@ -135,9 +137,9 @@ def _test_correlation_capture_worker(worker_frame_start,
         video_capture.release()
 
 
-class CVCorrelation:
+class CVCorrelation(CVAcceptanceTest):
     def __init__(self):
-        pass
+        super(CVCorrelation, self).__init__('correlation')
 
     @staticmethod
     def test_correlation_video_capture(cv_video_capture: CVVideoCapture,
@@ -228,7 +230,7 @@ class CVCorrelation:
                                         args=arg_tuple) for arg_tuple in final_pass_arg_list]
 
         def update_progress_tracker_final_pass():
-            progress_tracker.progress = 0.7 + progress_value.value * 0.3
+            progress_tracker.progress = 0.7 + progress_value.value / worker_count * 0.3
 
         progress_value.value = 0
         if progress_tracker:

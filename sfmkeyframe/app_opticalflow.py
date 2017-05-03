@@ -37,7 +37,7 @@ if __name__ == '__main__':
     # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     # filename_out = '/home/yifei/develop/sealab/keyframe/data/GP017728_out.avi'
     filename = '/home/yifei/develop/sealab/keyframe/data/GOPR7728.MP4'
-    filename_out = '/home/yifei/develop/sealab/keyframe/data/GOPR7728_out.avi'
+    filename_out = '/home/yifei/develop/sealab/keyframe/data/GOPR7728_out_200.avi'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     optical_flow = CVOpticalFlow(feature_params, lk_params)
     progress_tracker = CVProgressTracker(callback)
     result_arr = optical_flow.test_optical_flow_video_capture(
-        video_cap, 100, result_arr, frame_start=0, frame_end=num_frames,
+        video_cap, 200, result_arr, frame_start=0, frame_end=num_frames,
         progress_tracker=progress_tracker
     )
 

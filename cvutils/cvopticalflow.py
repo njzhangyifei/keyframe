@@ -7,7 +7,7 @@ import os
 
 from multiprocessing import Process
 
-from cvutils import CVVideoCapture, CVFrame
+from cvutils import CVVideoCapture, CVFrame, CVAcceptanceTest
 from cvutils.cvmisc import generate_multiprocessing_final_pass_ranges
 from cvutils.cvprogresstracker import CVProgressTracker
 from utils import stats, RepeatingTimer, first_occurrence_index, \
@@ -41,6 +41,8 @@ def _test_optical_flow_capture_worker(worker_frame_start,
             if current_frame < worker_frame_end:
                 amount_load = int(min(batch_size, worker_frame_end - current_frame))
                 with lock_video_capture:
+                    print('[OpticalFlow] Process %d - Reading %d frames from '
+                          '%d' % (os.getpid(), batch_size, current_frame))
                     buffer += [video_capture.read() for i in
                                range(0, amount_load)]
                 current_frame += amount_load
@@ -165,7 +167,7 @@ def _test_optical_flow_capture_worker(worker_frame_start,
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
-            progress_value.value += (skipped_count + 1) / frame_count
+            progress_value.value += (skipped_count + 1) / (worker_frame_end - worker_frame_start)
 
     # purge the last bit of the acceptance array
     print('last candidate %d' % worker_last_candidate.position_frame)
@@ -177,8 +179,9 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         video_capture.release()
 
 
-class CVOpticalFlow:
+class CVOpticalFlow(CVAcceptanceTest):
     def __init__(self, feature_params, lucas_kanade_params):
+        super(CVOpticalFlow, self).__init__('opticalflow')
         self.feature_params = feature_params
         self.lucas_kanade_params = lucas_kanade_params
         pass
@@ -241,7 +244,7 @@ class CVOpticalFlow:
                              args=arg_tuple) for arg_tuple in args_list]
 
         def update_progress_tracker():
-            progress_tracker.progress = progress_value.value
+            progress_tracker.progress = progress_value.value / worker_count * 0.7
 
         progress_timer = RepeatingTimer(0.1, update_progress_tracker)
 
@@ -276,7 +279,7 @@ class CVOpticalFlow:
                                         args=arg_tuple) for arg_tuple in final_pass_arg_list]
 
         def update_progress_tracker_final_pass():
-            progress_tracker.progress = 0.7 + progress_value.value * 0.3
+            progress_tracker.progress = 0.7 + progress_value.value / worker_count * 0.3
 
         progress_value.value = 0
         if progress_tracker:

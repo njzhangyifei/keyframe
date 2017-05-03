@@ -6,7 +6,7 @@ from multiprocessing import RLock, Process
 import cv2
 import numpy as np
 
-from cvutils import CVVideoCapture
+from cvutils import CVVideoCapture, CVAcceptanceTest
 from cvutils.cvprogresstracker import CVProgressTracker
 from utils import RepeatingTimer, stats
 from .cvframe import CVFrame
@@ -43,7 +43,8 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
                 print('[Sharpness] Process %d - Reading %d frames from '
                       '%d' % (os.getpid(), batch_size, worker_frame_start))
                 video_capture.set_position_frame(worker_frame_start)
-                frame_list = [video_capture.read() for i in range(0, batch_size)]
+                frame_list = [video_capture.read() for i in
+                              range(0, batch_size)]
                 worker_frame_start += batch_size
             total_frame -= batch_size
         else:
@@ -55,7 +56,8 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
                 #       '%d, last batch', os.getpid(),
                 #       total_frame, worker_frame_start)
                 video_capture.set_position_frame(worker_frame_start)
-                frame_list = [video_capture.read() for i in range(0, total_frame)]
+                frame_list = [video_capture.read() for i in
+                              range(0, total_frame)]
             total_frame = 0
         for frame in frame_list:
             frame_sharpness_ctype[int(frame.position_frame - frame_start)] = \
@@ -67,8 +69,9 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
     video_capture.release()
 
 
-class CVSharpness:
+class CVSharpness(CVAcceptanceTest):
     def __init__(self, use_sobel=False):
+        super(CVSharpness, self).__init__('sharpness')
         self.kernel_x = np.array([(0, 0, 0), (-1, 0, 1), (0, 0, 0)], np.double)
         self.kernel_y = np.array([(0, -1, 0), (0, 0, 0), (0, 1, 0)], np.double)
         if use_sobel:
@@ -151,6 +154,21 @@ class CVSharpness:
                                           (gray_scale_conversion_code),
                                           self.kernel_x, self.kernel_y)
 
+    # @staticmethod
+    # def save_calculation_file(sharpness_calculated, cv_video_cap: CVVideoCapture):
+    #
+    #     np.save(cv_video_cap.file_handle + '.sharpness.' +
+    #             str(sharpness_calculated.size) + '.npy', sharpness_calculated)
+    #
+    # @staticmethod
+    # def load_calculation_file(cv_video_cap: CVVideoCapture, count=0):
+    #     file_path = cv_video_cap.file_handle + '.sharpness.' + \
+    #                 str(cv_video_cap.frame_count if count == 0 else count) + \
+    #                 '.npy'
+    #     if os.path.exists(file_path):
+    #         return np.load(file_path)
+    #     return None
+
     @staticmethod
     def test_sharpness_acceptance(sharpness_calculated: np.ndarray,
                                   frame_window_size, z_score=1.0,
@@ -165,7 +183,8 @@ class CVSharpness:
         if progress_tracker:
             progress_tracker.running = True
         for i in range(0, frame_count, frame_window_size):
-            window = sharpness_calculated[i: i + min(frame_window_size, frame_count - i)]  # type: np.ndarray
+            window = sharpness_calculated[i: i + min(frame_window_size,
+                                                     frame_count - i)]  # type: np.ndarray
             result_window = np.ones_like(window, dtype=np.bool_)
             if median_absolute_deviation:
                 window_median = np.median(stats.trimboth(window, 0.1))
@@ -173,7 +192,8 @@ class CVSharpness:
                 abs_diff = np.abs(diff)
                 median_deviation = np.median(abs_diff)
                 window_z_score = \
-                    (0.6745 * diff) / median_deviation if median_deviation else 0.
+                    (
+                    0.6745 * diff) / median_deviation if median_deviation else 0.
                 result_window[window_z_score < -sigma_bound] = False
             else:
                 window_mean = stats.trimboth(window, 0.1).mean()
