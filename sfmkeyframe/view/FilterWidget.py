@@ -4,9 +4,11 @@ from PyQt5.QtWidgets import QGroupBox
 
 from cvutils import CVFrame, CVVideoCapture, CVSharpness, CVCorrelation, \
     CVOpticalFlow
+from cvutils.cvprogresstracker import CVProgressTracker
 from .ui.FilterWidget import Ui_FilterWidget
 
 
+# noinspection PyTypeChecker
 class FilterWidget(QGroupBox):
     def __init__(self, cv_video_cap):
         super(FilterWidget, self).__init__()
@@ -46,9 +48,7 @@ class FilterWidget(QGroupBox):
         feature_params = dict(maxCorners=500, qualityLevel=0.3,
                               minDistance=7, blockSize=7)
         lk_params = dict(winSize=(15, 15), maxLevel=2,
-                         criteria=(
-                             cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
-                             10, 0.03))
+                         criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
         params = {
             'enabled': self.ui.groupBoxFilterOpticalFlow.isChecked(),
             'threshold': self.ui.doubleSpinBoxFilterOpticalFlow_threshold.value(),
@@ -66,7 +66,7 @@ class FilterWidget(QGroupBox):
                 'filter': sharpness,
                 'calculation': sharpness.load_calculation_file(self.cv_video_cap),
                 'acceptance': None,
-                'loadded_acceptance': sharpness.load_acceptance_file(self.cv_video_cap)
+                'loaded_acceptance': sharpness.load_acceptance_file(self.cv_video_cap)
             }
         else:
             self.sharpness_filter = None
@@ -74,7 +74,8 @@ class FilterWidget(QGroupBox):
             correlation = CVCorrelation()
             self.correlation_filter = {
                 'filter': correlation,
-                'acceptance': correlation.load_acceptance_file(self.cv_video_cap),
+                'acceptance': None,
+                'loaded_acceptance': correlation.load_acceptance_file(self.cv_video_cap),
             }
         else:
             self.correlation_filter = None
@@ -84,13 +85,34 @@ class FilterWidget(QGroupBox):
                                         optical_flow_params['lk_params'])
             self.opticalflow_filter = {
                 'filter': opticalflow,
-                'acceptance': opticalflow.load_acceptance_file(self.cv_video_cap),
+                'acceptance': None,
+                'loaded_acceptance': opticalflow.load_acceptance_file(self.cv_video_cap),
             }
         else:
             self.opticalflow_filter = None
 
     def pushButtonFilterGlobal_run_clicked(self):
         self.prepare_filters()
+
+        def test_callback(obj):
+            print(obj.progress)
+
+        progress_tracker = CVProgressTracker(test_callback)
+        if self.sharpness_filter:
+            # sharpness filter enabled
+            filter = self.sharpness_filter['filter']  # type: CVSharpness
+            sharpness_value = self.sharpness_filter['calculation']
+            if sharpness_value is None:
+                sharpness_value = filter.calculate_sharpness_video_capture(
+                    cv_video_capture=self.cv_video_cap,
+                    progress_tracker=progress_tracker
+                )
+            self.correlation_filter['acceptance'] = \
+                filter.test_sharpness_acceptance(
+                    sharpness_calculated=sharpness_value,
+                    frame_window_size=self.params_sharpness['window_size'],
+                    z_score=self.params_sharpness['z_score']
+                )
 
         # print(str(self.params_sharpness) if self.params_sharpness['enabled']
         #       else 'sharpness filter is disabled')
