@@ -154,20 +154,16 @@ class CVSharpness(CVAcceptanceTest):
                                           (gray_scale_conversion_code),
                                           self.kernel_x, self.kernel_y)
 
-    # @staticmethod
-    # def save_calculation_file(sharpness_calculated, cv_video_cap: CVVideoCapture):
-    #
-    #     np.save(cv_video_cap.file_handle + '.sharpness.' +
-    #             str(sharpness_calculated.size) + '.npy', sharpness_calculated)
-    #
-    # @staticmethod
-    # def load_calculation_file(cv_video_cap: CVVideoCapture, count=0):
-    #     file_path = cv_video_cap.file_handle + '.sharpness.' + \
-    #                 str(cv_video_cap.frame_count if count == 0 else count) + \
-    #                 '.npy'
-    #     if os.path.exists(file_path):
-    #         return np.load(file_path)
-    #     return None
+    def save_calculation_file(self, sharpness_calculated, cv_video_cap: CVVideoCapture):
+        np.save(cv_video_cap.file_handle + '.' + self.numpy_file_prefix + '.' +
+                str(sharpness_calculated.size) + '.npy', sharpness_calculated)
+
+    def load_calculation_file(self, cv_video_cap: CVVideoCapture, count=0):
+        file_path = cv_video_cap.file_handle + '.' + self.numpy_file_prefix +\
+                    '.' + str(cv_video_cap.frame_count if count == 0 else count) + '.npy'
+        if os.path.exists(file_path):
+            return np.load(file_path)
+        return None
 
     @staticmethod
     def test_sharpness_acceptance(sharpness_calculated: np.ndarray,

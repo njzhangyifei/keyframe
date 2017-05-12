@@ -7,9 +7,9 @@ def generate_multiprocessing_final_pass_ranges(frame_acceptance_ctype,
                                                worker_count,
                                                skip_window_both_end,
                                                ):
-    final_pass_ranges = [(
-        last_occurrence_index(frame_acceptance_ctype, True, (task_per_worker * i - skip_window_both_end)),
-        first_occurrence_index(frame_acceptance_ctype, True, (task_per_worker * i + skip_window_both_end))+1)
+    final_pass_ranges = [
+        (last_occurrence_index(frame_acceptance_ctype, True, (task_per_worker * i - skip_window_both_end)),
+         first_occurrence_index(frame_acceptance_ctype, True, (task_per_worker * i + skip_window_both_end))+1)
         for i in range(1, worker_count - 1)]
 
     final_pass_ranges.append(
