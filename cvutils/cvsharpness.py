@@ -160,7 +160,7 @@ class CVSharpness(CVAcceptanceTest):
 
     def load_calculation_file(self, cv_video_cap: CVVideoCapture, count=0):
         file_path = cv_video_cap.file_handle + '.' + self.numpy_file_prefix +\
-                    '.' + str(cv_video_cap.frame_count if count == 0 else count) + '.npy'
+                    '.' + str(int(cv_video_cap.frame_count) if count == 0 else count) + '.npy'
         if os.path.exists(file_path):
             return np.load(file_path)
         return None

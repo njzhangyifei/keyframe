@@ -21,6 +21,7 @@ def _calculate_correlation_cvmat(cvmat_grayscale, template_grayscale):
                                cv2.TM_CCORR_NORMED)
     return result[0][0]
 
+
 def _test_correlation_capture_worker(worker_frame_start,
                                      worker_frame_end,
                                      frame_start,
@@ -126,11 +127,14 @@ def _test_correlation_capture_worker(worker_frame_start,
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
-            progress_value.value += (skipped_frame_count + 1) / (worker_frame_end - worker_frame_start)
+            progress_value.value += (skipped_frame_count + 2) / (worker_frame_end - worker_frame_start)
 
     # purge the last bit of the acceptance array
     for i in range(int(worker_last_candidate.position_frame+1),
                    worker_frame_end - skip_window_both_end):
+        # since we are not able to find a matching frame with last candidate
+        # among this range, these frames are not possible for a valid candidate
+        # hence, no need to check
         frame_acceptance_ctype[i - frame_start] = False
 
     with lock_video_capture:
@@ -192,7 +196,7 @@ class CVCorrelation(CVAcceptanceTest):
                              args=arg_tuple) for arg_tuple in args_list]
 
         def update_progress_tracker_first_pass():
-            progress_tracker.progress = progress_value.value * 0.7
+            progress_tracker.progress = progress_value.value / worker_count * 0.7
 
         progress_timer = RepeatingTimer(0.1, update_progress_tracker_first_pass)
 

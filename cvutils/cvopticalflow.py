@@ -173,6 +173,9 @@ def _test_optical_flow_capture_worker(worker_frame_start,
     print('last candidate %d' % worker_last_candidate.position_frame)
     for i in range(int(worker_last_candidate.position_frame+1),
                    worker_frame_end - skip_window_both_end):
+        # since we are not able to find a matching frame with last candidate
+        # among this range, these frames are not possible for a valid candidate
+        # hence, no need to check
         frame_acceptance_ctype[i - frame_start] = False
 
     with lock_video_capture:
