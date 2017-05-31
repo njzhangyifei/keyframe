@@ -1,14 +1,20 @@
 import json
 from PyQt5 import QtCore
-
+import pickle
+import os
 import cv2
 import numpy as np
 from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal, QThread
-from PyQt5.QtWidgets import QGroupBox, QProgressDialog
+from PyQt5.QtWidgets import QGroupBox, QProgressDialog, QFileDialog, QMessageBox
 
 from cvutils import CVFrame, CVVideoCapture, CVSharpness, CVCorrelation, \
     CVOpticalFlow
+from cvutils.cvarrayfilteredvideocapture import CVArrayFilteredVideoCapture
 from cvutils.cvprogresstracker import CVProgressTracker
+from sfmkeyframe.view.VideoPlaybackControlWidget import \
+    VideoPlaybackControlWidget
+from sfmkeyframe.view.VideoPlaybackWidget import VideoPlaybackWidget
+from sfmkeyframe.view.VideoWidget import VideoWidget
 from utils.genericworker import GenericWorker
 from utils.progressworker import ProgressWorker
 from .ui.FilterWidget import Ui_FilterWidget
@@ -21,24 +27,50 @@ class FilterWidget(QGroupBox):
         self.cv_video_cap = cv_video_cap  # type: CVVideoCapture
         self.ui = Ui_FilterWidget()
         self.ui.setupUi(self)
-        self.ui.spinBoxFilterSharpness_windowSize.setValue(
-            self.cv_video_cap.get_frame_rate())
-        self.ui.pushButtonFilterGlobal_run.clicked.connect(
-            self.pushButtonFilterGlobal_run_clicked)
+        self.ui.spinBoxFilterSharpness_windowSize.setValue(self.cv_video_cap.get_frame_rate())
+        self.opticalflow_feature_params = dict(maxCorners=500, qualityLevel=0.3,
+                                               minDistance=7, blockSize=7)
+        self.opticalflow_lk_params = dict(winSize=(15, 15), maxLevel=2,
+                                          criteria=(
+                                              cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+                                              10, 0.03)
+                                          )
         self.frame_acceptance_np = None
         self.sharpness_filter = None
         self.correlation_filter = None
         self.opticalflow_filter = None
+        self.sharpness_filter_status = ""
+        self.correlation_filter_status = ""
+        self.opticalflow_filter_status = ""
         self.filter_worker = None
         self.filter_worker_thread = None
-        self.filter_worker_progressdialog = None # type: QProgressDialog
+        self.filter_worker_progressdialog = None  # type: QProgressDialog
+
+        self.ui.pushButtonFilterGlobal_run.clicked.connect(self.pushButtonFilterGlobal_run_clicked)
+        self.ui.pushButtonFilterParams_save.clicked.connect(self.pushButtonFilterParams_save_clicked)
+        self.ui.pushButtonFilterParams_load.clicked.connect(self.pushButtonFilterParams_load_clicked)
+        self.ui.pushButtonFilterGlobal_preview.clicked.connect(self.pushButtonFilterGlobal_preview_clicked)
+
+        self.playback_widget = None
+        self.playback_control_widget = None
+        self.filtered_video_capture = None
+
+        self.update_filter_status()
 
     def closeEvent(self, e):
         super(FilterWidget, self).closeEvent(e)
 
     @property
     def params_batch_count(self):
-        return self.ui.spinBoxFilterGlobal_batchSize.value()
+        val = min(self.ui.spinBoxFilterGlobal_batchSize.value(), self.cv_video_cap.get_frame_count())
+        val = int(val)
+        self.ui.spinBoxFilterGlobal_batchSize.setValue(val)
+        return val
+
+    def load_params_batch_count(self, val):
+        val = min(val, self.cv_video_cap.get_frame_count())
+        val = int(val)
+        self.ui.spinBoxFilterGlobal_batchSize.setValue(val)
 
     @property
     def params_sharpness(self):
@@ -49,6 +81,11 @@ class FilterWidget(QGroupBox):
         }
         return params
 
+    def load_params_sharpness(self, params):
+        self.ui.groupBoxFilterSharpness.setChecked(params['enabled'])
+        self.ui.doubleSpinBoxFilterSharpness_zscore.setValue(params['z_score'])
+        self.ui.spinBoxFilterSharpness_windowSize.setValue(params['window_size'])
+
     @property
     def params_correlation(self):
         params = {
@@ -57,26 +94,51 @@ class FilterWidget(QGroupBox):
         }
         return params
 
+    def load_params_correlation(self, params):
+        self.ui.groupBoxFilterCorrelation.setChecked(params['enabled'])
+        self.ui.doubleSpinBoxFilterCorrelation_threshold.setValue(params['threshold'])
+
     @property
     def params_opticalflow(self):
-        feature_params = dict(maxCorners=500, qualityLevel=0.3,
-                              minDistance=7, blockSize=7)
-        lk_params = dict(winSize=(15, 15), maxLevel=2,
-                         criteria=(
-                             cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
-                             10,
-                             0.03))
         params = {
             'enabled': self.ui.groupBoxFilterOpticalFlow.isChecked(),
             'threshold': self.ui.doubleSpinBoxFilterOpticalFlow_threshold.value(),
             'opticalflow_params': {
-                'feature_params': feature_params,
-                'lk_params': lk_params
+                'feature_params': self.opticalflow_feature_params,
+                'lk_params': self.opticalflow_lk_params
             }
         }
         return params
 
+    def load_params_opticalflow(self, params):
+        self.ui.groupBoxFilterOpticalFlow.setChecked(params['enabled'])
+        self.ui.doubleSpinBoxFilterOpticalFlow_threshold.setValue(params['threshold'])
+        self.opticalflow_feature_params = params['opticalflow_params']['feature_params']
+        self.opticalflow_lk_params = params['opticalflow_params']['lk_params']
+
+    def save_params(self, filepath):
+        with open(filepath, 'wb') as f:
+            pickle.dump({
+                'batch_count': self.params_batch_count,
+                'sharpness': self.params_sharpness,
+                'correlation': self.params_correlation,
+                'opticalflow': self.params_opticalflow
+            }, f)
+        pass
+
+    def load_params(self, filepath):
+        with open(filepath, 'rb') as f:
+            p = pickle.load(f)
+            if p is not None:
+                self.load_params_batch_count(p['batch_count'])
+                self.load_params_sharpness(p['sharpness'])
+                self.load_params_correlation(p['correlation'])
+                self.load_params_opticalflow(p['opticalflow'])
+
     def prepare_filters(self):
+        self.sharpness_filter_status = ""
+        self.correlation_filter_status = ""
+        self.opticalflow_filter_status = ""
         if self.params_sharpness['enabled']:
             sharpness = CVSharpness()
             self.sharpness_filter = {
@@ -128,6 +190,7 @@ class FilterWidget(QGroupBox):
 
     def update_progressbar_dialog_title(self, title):
         self.filter_worker_progressdialog.setLabelText(title)
+        self.update_filter_status()
 
     def update_progressbar_dialog_value(self, value):
         self.filter_worker_progressdialog.setValue(min(round(value * 1000), 1000))
@@ -135,6 +198,49 @@ class FilterWidget(QGroupBox):
     def destroy_progressbar_dialog(self):
         self.filter_worker_progressdialog.close()
         self.filter_worker_progressdialog.destroy()
+
+    def update_filter_status(self):
+        self.ui.labelFilterSharpness_status.setText("N/A" if self.sharpness_filter_status == "" else self.sharpness_filter_status)
+        self.ui.labelFilterCorrelation_status.setText("N/A" if self.correlation_filter_status == "" else self.correlation_filter_status)
+        self.ui.labelFilterOpticalFlow_status.setText("N/A" if self.opticalflow_filter_status == "" else self.opticalflow_filter_status)
+
+    def pushButtonFilterParams_load_clicked(self):
+        filename = QFileDialog.getOpenFileName(self, 'Open saved filter params',
+                                               os.path.dirname(os.path.abspath(self.cv_video_cap.file_handle)),
+                                               filter='*.pickled_params')[0]
+        if os.path.exists(filename):
+            self.load_params(filename)
+
+    def pushButtonFilterParams_save_clicked(self):
+        filename = QFileDialog.getSaveFileName(self, 'Save filter params',
+                                               os.path.dirname(os.path.abspath(self.cv_video_cap.file_handle)),
+                                               filter='*.pickled_params')[0]
+        if not filename.endswith(".pickled_params"):
+            filename += ".pickled_params"
+        self.save_params(filename)
+
+    def pushButtonFilterGlobal_preview_clicked(self):
+        if self.playback_widget:
+            self.playback_widget.close()
+            self.playback_widget = None
+        if self.playback_control_widget:
+            self.playback_control_widget.close()
+            self.playback_control_widget = None
+
+        if self.frame_acceptance_np is None:
+            msgbox = QMessageBox(self)
+            msgbox.setWindowTitle('Error')
+            msgbox.setIcon(QMessageBox.Warning)
+            msgbox.setText('Nothing to preview.\nPlease run filters first!')
+            msgbox.show()
+            return
+
+        self.filtered_video_capture = CVArrayFilteredVideoCapture(self.cv_video_cap, 1, self.frame_acceptance_np)
+        self.playback_widget = VideoPlaybackWidget()
+        self.playback_control_widget = VideoPlaybackControlWidget(self.filtered_video_capture)
+        self.playback_widget.show()
+        self.playback_control_widget.incomingFrame.connect(self.playback_widget.on_incomingFrame)
+        self.playback_control_widget.show()
 
     def pushButtonFilterGlobal_run_clicked(self):
         self.create_progressbar_dialog('Loading...')
@@ -183,8 +289,17 @@ class FilterWidget(QGroupBox):
                     sharpness_filter.save_acceptance_file(sharpness_acceptance,
                                                           self.cv_video_cap)
                     sharpness_filter_updated = True
+
+                original_count = np.sum(self.frame_acceptance_np)
+                current_count = np.sum(self.sharpness_filter['acceptance_loaded'])
+                self.sharpness_filter_status = ("[%d] => [%d] frames (%.2f%% dropped)" %
+                                                (original_count, current_count,
+                                                 (original_count-current_count)/original_count*100))
+                progress_changed.emit(1)
                 state_changed.emit('Sharpness filter done...')
                 self.frame_acceptance_np = self.sharpness_filter['acceptance_loaded']
+            else:
+                sharpness_filter_updated = True
 
             correlation_filter_updated = False
             if sharpness_filter_updated:
@@ -196,7 +311,6 @@ class FilterWidget(QGroupBox):
                 state_changed.emit('Running correlation filter...')
 
                 def callback(obj):
-                    print(obj.progress)
                     progress_changed.emit(obj.progress)
 
                 # correlation filter enabled
@@ -224,9 +338,17 @@ class FilterWidget(QGroupBox):
                     correlation_filter.save_params_file(self.correlation_filter['params'], self.cv_video_cap)
                     correlation_filter.save_acceptance_file(correlation_acceptance, self.cv_video_cap)
                     correlation_filter_updated = True
+
+                original_count = np.sum(self.frame_acceptance_np)
+                current_count = np.sum(self.correlation_filter['acceptance_loaded'])
+                self.correlation_filter_status = ("[%d] => [%d] frames (%.2f%% dropped)" %
+                                                  (original_count, current_count,
+                                                   (original_count-current_count)/original_count*100))
                 progress_changed.emit(1)
                 state_changed.emit('Correlation filter done...')
                 self.frame_acceptance_np = self.correlation_filter['acceptance_loaded']
+            else:
+                correlation_filter_updated = True
 
             opticalflow_filter_updated = False
             if correlation_filter_updated:
@@ -259,14 +381,21 @@ class FilterWidget(QGroupBox):
                             progress_tracker=CVProgressTracker(callback),
                             batch_size=self.params_batch_count,
                         )
-                    self.correlation_filter['acceptance'] = opticalflow_acceptance
-                    self.correlation_filter['acceptance_loaded'] = opticalflow_acceptance
+                    self.opticalflow_filter['acceptance'] = opticalflow_acceptance
+                    self.opticalflow_filter['acceptance_loaded'] = opticalflow_acceptance
                     opticalflow_filter.save_params_file(self.opticalflow_filter['params'], self.cv_video_cap)
                     opticalflow_filter.save_acceptance_file(opticalflow_acceptance, self.cv_video_cap)
 
+                original_count = np.sum(self.frame_acceptance_np)
+                current_count = np.sum(self.opticalflow_filter['acceptance_loaded'])
+                self.opticalflow_filter_status = ("[%d] => [%d] frames (%.2f%% dropped)" %
+                                                  (original_count, current_count,
+                                                   (original_count-current_count)/original_count*100))
                 progress_changed.emit(1)
                 state_changed.emit('Optical flow filter done...')
                 self.frame_acceptance_np = self.opticalflow_filter['acceptance_loaded']
+            else:
+                opticalflow_filter_updated = True
 
             progress_changed.emit(1)
             state_changed.emit('All filters done!')
@@ -279,10 +408,5 @@ class FilterWidget(QGroupBox):
         self.filter_worker.progress_changed.connect(self.update_progressbar_dialog_value)
         self.filter_worker.state_changed.connect(self.update_progressbar_dialog_title)
         self.filter_worker.finished.connect(self.destroy_progressbar_dialog)
+        self.filter_worker.finished.connect(self.update_filter_status)
         self.filter_worker.start.emit()
-
-        # print(str(self.params_correlation) if self.params_correlation['enabled']
-        #       else 'correlation filter is disabled')
-        # print(str(self.params_opticalflow) if self.params_opticalflow['enabled']
-        #       else 'opticalflow filter is disabled')
-        #

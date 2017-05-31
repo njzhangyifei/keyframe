@@ -47,11 +47,10 @@ def _test_correlation_capture_worker(worker_frame_start,
         if need_more_frame:
             # read in until the end
             if current_frame < worker_frame_end:
-                amount_load = int(
-                    min(batch_size, worker_frame_end - current_frame))
+                amount_load = int(min(batch_size, worker_frame_end - current_frame))
                 with lock_video_capture:
                     print('[Correlation] Process %d - Reading %d frames from '
-                          '%d' % (os.getpid(), batch_size, current_frame))
+                          '%d' % (os.getpid(), amount_load, current_frame))
                     buffer += [video_capture.read() for i in
                                range(0, amount_load)]
                 current_frame += amount_load
@@ -127,7 +126,7 @@ def _test_correlation_capture_worker(worker_frame_start,
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
-            progress_value.value += (skipped_frame_count + 2) / (worker_frame_end - worker_frame_start)
+            progress_value.value += (skipped_frame_count + 1) / (worker_frame_end - worker_frame_start)
 
     # purge the last bit of the acceptance array
     for i in range(int(worker_last_candidate.position_frame+1),
@@ -211,10 +210,7 @@ class CVCorrelation(CVAcceptanceTest):
         for p in processes:
             p.join()
 
-        if progress_tracker:
-            progress_timer.cancel()
-
-        print('final pass')
+        print('[Correlation] final pass')
 
         final_pass_ranges = generate_multiprocessing_final_pass_ranges \
             (frame_acceptance_ctype, frame_count, task_per_worker, worker_count, skip_window_both_end)

@@ -1,9 +1,9 @@
 from cvutils import CVVideoCapture
 
 
-class CVFilteredVideoCapture(CVVideoCapture):
+class CVFuncFilteredVideoCapture(CVVideoCapture):
     def __init__(self, cv_video_capture: CVVideoCapture, filter_func):
-        super(CVFilteredVideoCapture, self).\
+        super(CVFuncFilteredVideoCapture, self).\
             __init__(cv_video_capture.file_handle, cv_video_capture.is_camera)
         # assert not self.filter_func.__call__ is None
         if not filter_func.__call__:
@@ -12,7 +12,7 @@ class CVFilteredVideoCapture(CVVideoCapture):
 
     def read(self):
         while True:
-            cv_frame = super(CVFilteredVideoCapture, self).read()
+            cv_frame = super(CVFuncFilteredVideoCapture, self).read()
             if cv_frame is None:
                 return cv_frame
             if self.filter_func(cv_frame):

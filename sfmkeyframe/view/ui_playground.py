@@ -23,6 +23,7 @@ from utils.genericworker import GenericWorker
 
 
 if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn')
     app = QApplication(sys.argv)
 
     # obj = GenericWorker(ob.oooo, t=10, s='test')
@@ -36,10 +37,10 @@ if __name__ == '__main__':
     # objThread.start()
 
 
-    multiprocessing.set_start_method('spawn')
     # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/test_50s.mp4'
+    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/test_50s.mp4'
     # filename = '/home/yifei/develop/sealab/keyframe/data/GOPR7728.MP4'
+    filename = '/home/yifei/develop/sealab/keyframe/data/short.mp4'
     video_cap = CVVideoCapture(filename)
     filter_widget = FilterWidget(video_cap)
     filter_widget.show()

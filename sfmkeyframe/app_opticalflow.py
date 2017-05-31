@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QApplication
 from cvutils import CVFrame, CVVideoCapture
 from cvutils.cvcorrelation import CVCorrelation, \
     _test_correlation_capture_worker
-from cvutils.cvfilteredvideocapture import CVFilteredVideoCapture
+from cvutils.cvfuncfilteredvideocapture import CVFuncFilteredVideoCapture
 from cvutils.cvframebuffer import CVFrameBuffer
 import numpy as np
 

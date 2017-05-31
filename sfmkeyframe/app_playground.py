@@ -1,7 +1,10 @@
+import multiprocessing
 import sys
 
 import cv2
 import logging
+
+import numpy as np
 from PyQt5 import QtCore
 
 from PyQt5.QtWidgets import QFileDialog, QMainWindow, QHBoxLayout, QVBoxLayout, \
@@ -48,14 +51,15 @@ class SharpnessViewer(QMainWindow):
 
 
 if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn')
     logging.getLogger().setLevel(logging.INFO)
     logging.info('test')
     app = QApplication(sys.argv)
     # ex = SharpnessViewer(app)
     # ex.show()
     # filename = select_file()[0]
-    filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
-    # filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
+    # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
+    filename = '/home/yifei/develop/sealab/keyframe/data/GP017728.MP4'
     video_cap = CVVideoCapture(filename)
     frame_rate = video_cap.get_frame_rate()
 
@@ -74,19 +78,15 @@ if __name__ == '__main__':
     progress_tracker = CVProgressTracker(callback)
 
     cvsharpness = CVSharpness()
-    sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
-        frame_start=0, frame_end=1000,
-        batch_size=300,
-        cv_video_capture=video_cap,
-        progress_tracker=progress_tracker
-    )
+    # sharpness_measure = cvsharpness.calculate_sharpness_video_capture(
+    #     frame_start=0, frame_end=1000,
+    #     batch_size=300,
+    #     cv_video_capture=video_cap,
+    #     progress_tracker=progress_tracker
+    # )
     print('frame count = ' + str(video_cap.get_frame_count()))
-    print(sharpness_measure.shape[0])
-    sharpness_result = cvsharpness.test_sharpness_acceptance(
-        sharpness_measure, frame_rate / 2, z_score=2)
-    print((sharpness_result == True).sum())
-    print(sharpness_result.shape[0])
-
+    # print(sharpness_measure.shape[0])
+    sharpness_result = np.ones([1001], dtype=np.bool_)
     playback_widget = VideoPlaybackWidget()
     control_widget = VideoPlaybackControlWidget(video_cap)
 

@@ -39,10 +39,11 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         if need_more_frame:
             # read in until the end
             if current_frame < worker_frame_end:
-                amount_load = int(min(batch_size, worker_frame_end - current_frame))
+                amount_load = int(
+                    min(batch_size, worker_frame_end - current_frame))
                 with lock_video_capture:
                     print('[OpticalFlow] Process %d - Reading %d frames from '
-                          '%d' % (os.getpid(), batch_size, current_frame))
+                          '%d' % (os.getpid(), amount_load, current_frame))
                     buffer += [video_capture.read() for i in
                                range(0, amount_load)]
                 current_frame += amount_load
@@ -56,7 +57,8 @@ def _test_optical_flow_capture_worker(worker_frame_start,
             if len(buffer) == 0:
                 need_more_frame = True
                 break
-            if frame_acceptance_ctype[int(buffer[0].position_frame - frame_start)]:
+            if frame_acceptance_ctype[
+                int(buffer[0].position_frame - frame_start)]:
                 worker_last_candidate = buffer[0]
                 break
             else:
@@ -68,7 +70,8 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         # greedy
         iter_buffer = iter(buffer)
         frame_initial = next(iter_buffer)  # type: CVFrame
-        frame_initial_gray = frame_initial.get_cv_mat_grayscale(gray_scale_conversion_code)
+        frame_initial_gray = frame_initial.get_cv_mat_grayscale(
+            gray_scale_conversion_code)
         previous_frame_gray = frame_initial_gray.copy()
         previous_frame_features = cv2.goodFeaturesToTrack(previous_frame_gray,
                                                           mask=None,
@@ -100,7 +103,8 @@ def _test_optical_flow_capture_worker(worker_frame_start,
                 feature_status == 1]
             good_i_features = frame_i_features[feature_status == 1]
 
-            immediate_displacement = (good_i_features - good_previous_features) ** 2
+            immediate_displacement = (
+                                     good_i_features - good_previous_features) ** 2
             immediate_distance = np.sqrt(np.sum(immediate_displacement, axis=1))
             mean_immediate_distance = stats.trimboth(immediate_distance,
                                                      0.1).mean()
@@ -148,20 +152,20 @@ def _test_optical_flow_capture_worker(worker_frame_start,
         # matched
         # logging.info('proc [%d] matched %d -> %d' %
         #              (os.getpid(), int(template.position_frame), int(image.position_frame)))
-        # print('optical flow process [%d] matched %d -> %d, skipped %d, int distance = %d' %
-        #       (os.getpid(), int(frame_initial.position_frame),
-        #        int(frame_candidate.position_frame),
-        #        skipped_count,
-        #        frame_candidate_distance))
+        print('optical flow process [%d] matched %d -> %d, skipped %d, int distance = %d' %
+            (os.getpid(), int(frame_initial.position_frame),
+             int(frame_candidate.position_frame),
+             skipped_count,
+             frame_candidate_distance))
 
         # we don't want to reject the initial frame
         buffer.popleft()
         # remove unmatched
-        for i in range(0, skipped_count-1):
+        for i in range(0, skipped_count - 1):
             f = buffer.popleft()  # type: CVFrame
             # special handling for greedy algorithm
-            if (f.position_frame < worker_frame_start + skip_window_both_end) or \
-                    (f.position_frame > worker_frame_end - skip_window_both_end):
+            if (f.position_frame < (worker_frame_start + skip_window_both_end)) or \
+                    (f.position_frame > (worker_frame_end - skip_window_both_end)):
                 # skip first and last frame_rate frames on each worker
                 continue
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
@@ -171,7 +175,7 @@ def _test_optical_flow_capture_worker(worker_frame_start,
 
     # purge the last bit of the acceptance array
     print('last candidate %d' % worker_last_candidate.position_frame)
-    for i in range(int(worker_last_candidate.position_frame+1),
+    for i in range(int(worker_last_candidate.position_frame + 1),
                    worker_frame_end - skip_window_both_end):
         # since we are not able to find a matching frame with last candidate
         # among this range, these frames are not possible for a valid candidate
@@ -261,7 +265,7 @@ class CVOpticalFlow(CVAcceptanceTest):
         for p in processes:
             p.join()
 
-        print('final pass')
+        print('[OpticalFlow] final pass')
 
         final_pass_ranges = generate_multiprocessing_final_pass_ranges \
             (frame_acceptance_ctype, frame_count, task_per_worker, worker_count, skip_window_both_end)
@@ -278,8 +282,9 @@ class CVOpticalFlow(CVAcceptanceTest):
                                 gray_scale_conversion_code)
                                for range_i in final_pass_ranges]
 
-        final_pass_processes = [Process(target=_test_optical_flow_capture_worker,
-                                        args=arg_tuple) for arg_tuple in final_pass_arg_list]
+        final_pass_processes = [
+            Process(target=_test_optical_flow_capture_worker,
+                    args=arg_tuple) for arg_tuple in final_pass_arg_list]
 
         def update_progress_tracker_final_pass():
             progress_tracker.progress = 0.7 + progress_value.value / worker_count * 0.3
@@ -290,7 +295,7 @@ class CVOpticalFlow(CVAcceptanceTest):
 
         for p in final_pass_processes:
             p.start()
-        for p in final_pass_processes:
+        # for p in final_pass_processes:
             p.join()
 
         if progress_tracker:

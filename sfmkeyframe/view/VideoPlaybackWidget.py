@@ -1,15 +1,15 @@
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSlot
-from PyQt5.QtWidgets import QGroupBox
+from PyQt5.QtWidgets import QGroupBox, QWidget
 
 from cvutils import CVFrame
 from .VideoWidget import VideoWidget
 from .ui.VideoPlaybackWidget import Ui_VideoPlaybackWidget
 
 
-class VideoPlaybackWidget(QGroupBox):
+class VideoPlaybackWidget(QWidget):
     def __init__(self, *args):
-        super(VideoPlaybackWidget, self).__init__(*args)
+        super(VideoPlaybackWidget, self).__init__()
         self.ui = Ui_VideoPlaybackWidget()
         self.ui.setupUi(self)
         self.videoWidget = VideoWidget(self.ui.groupBoxVideo)
