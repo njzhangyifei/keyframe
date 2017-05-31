@@ -167,7 +167,7 @@ def _test_optical_flow_capture_worker(worker_frame_start,
             frame_acceptance_ctype[int(f.position_frame) - frame_start] = False
 
         with progress_value.get_lock():
-            progress_value.value += (skipped_count + 1) / (worker_frame_end - worker_frame_start)
+            progress_value.value += skipped_count / (worker_frame_end - worker_frame_start)
 
     # purge the last bit of the acceptance array
     print('last candidate %d' % worker_last_candidate.position_frame)
