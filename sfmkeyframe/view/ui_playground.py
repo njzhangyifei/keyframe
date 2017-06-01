@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import QApplication, QProgressDialog
 
 from cvutils import CVVideoCapture
 from sfmkeyframe.view.FilterWidget import FilterWidget
+from sfmkeyframe.view.KeyframeMainWindow import KeyframeMainWindow
 from utils.genericworker import GenericWorker
 
 # class t:
@@ -40,9 +41,12 @@ if __name__ == '__main__':
     # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/GP017728.MP4'
     # filename = 'C:/Users/Yifei/unixhome/develop/sealab/keyframe/data/test_50s.mp4'
     # filename = '/home/yifei/develop/sealab/keyframe/data/GOPR7728.MP4'
-    filename = '/home/yifei/develop/sealab/keyframe/data/short.mp4'
-    video_cap = CVVideoCapture(filename)
-    filter_widget = FilterWidget(video_cap)
-    filter_widget.show()
+    # filename = '/home/yifei/develop/sealab/keyframe/data/short.mp4'
+    # video_cap = CVVideoCapture(filename)
+    # filter_widget = FilterWidget(video_cap)
+    # filter_widget.show()
+
+    mainWindow = KeyframeMainWindow()
+    mainWindow.show()
 
     sys.exit(app.exec_())
