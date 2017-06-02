@@ -3,7 +3,7 @@ A simple tool for selecting keyframes from SfM (structure from motion) videos,
 using naive sharpness, correlation and optical flow criteria.
 
 <p align="center">
-  <img src="https://cloud.githubusercontent.com/assets/2238599/26716249/9290b81c-472d-11e7-8bf3-fc025020844e.png">
+  <img src="https://cloud.githubusercontent.com/assets/2238599/26716386/0b09acfe-472e-11e7-89eb-a9c1aaa24756.png" width="40%">
 <p align="center">
 
 ## Dependencies
