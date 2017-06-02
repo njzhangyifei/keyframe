@@ -1,11 +1,11 @@
 # Keyframe
-`keyframe`: a simple tool for selecting keyframes from SfM (structure from motion) videos,
-using **naive sharpness, correlation and optical flow** criteria. 
-Fast but may be inaccurate as **no** geometrical estimation of the scene is done in the process.
-
 <p align="center">
   <img src="https://cloud.githubusercontent.com/assets/2238599/26716386/0b09acfe-472e-11e7-89eb-a9c1aaa24756.png" width="40%">
 <p align="center">
+
+`keyframe`: a simple tool for selecting keyframes from SfM (structure from motion) videos,
+using **naive sharpness, correlation and optical flow** criteria. 
+Fast but may be inaccurate as **no** geometrical estimation of the scene is done in the process.
 
 ## Dependencies
 - `python3`
