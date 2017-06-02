@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_KeyframeMainWindow(object):
     def setupUi(self, KeyframeMainWindow):
         KeyframeMainWindow.setObjectName("KeyframeMainWindow")
-        KeyframeMainWindow.resize(500, 535)
+        KeyframeMainWindow.resize(500, 426)
         KeyframeMainWindow.setMinimumSize(QtCore.QSize(500, 0))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/keyframe_icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -29,7 +29,7 @@ class Ui_KeyframeMainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_logo.sizePolicy().hasHeightForWidth())
         self.label_logo.setSizePolicy(sizePolicy)
-        self.label_logo.setMaximumSize(QtCore.QSize(300, 300))
+        self.label_logo.setMaximumSize(QtCore.QSize(250, 250))
         self.label_logo.setFrameShape(QtWidgets.QFrame.NoFrame)
         self.label_logo.setText("")
         self.label_logo.setPixmap(QtGui.QPixmap(":/keyframe_text.png"))
@@ -65,7 +65,7 @@ class Ui_KeyframeMainWindow(object):
     def retranslateUi(self, KeyframeMainWindow):
         _translate = QtCore.QCoreApplication.translate
         KeyframeMainWindow.setWindowTitle(_translate("KeyframeMainWindow", "Keyframe"))
-        self.label_text.setText(_translate("KeyframeMainWindow", "<html><head/><body><p align=\"center\">A tool for selecting keyframes from video for SfM</p><p align=\"center\"><br/></p></body></html>"))
+        self.label_text.setText(_translate("KeyframeMainWindow", "<html><head/><body><p align=\"center\">A simple tool for selecting keyframes from SfM videos<br/><br/></p></body></html>"))
         self.pushButton_load.setText(_translate("KeyframeMainWindow", "Load Video File"))
         self.pushButton_help.setText(_translate("KeyframeMainWindow", "Help"))
         self.pushButton_exit.setText(_translate("KeyframeMainWindow", "Exit"))

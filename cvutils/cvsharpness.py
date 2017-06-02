@@ -70,7 +70,7 @@ def _calculate_sharpness_video_capture_worker(worker_frame_start,
 
 
 class CVSharpness(CVAcceptanceTest):
-    def __init__(self, use_sobel=False):
+    def __init__(self, use_sobel=True):
         super(CVSharpness, self).__init__('sharpness')
         self.kernel_x = np.array([(0, 0, 0), (-1, 0, 1), (0, 0, 0)], np.double)
         self.kernel_y = np.array([(0, -1, 0), (0, 0, 0), (0, 1, 0)], np.double)

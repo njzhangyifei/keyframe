@@ -17,6 +17,9 @@ class Ui_FilterWidget(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(FilterWidget.sizePolicy().hasHeightForWidth())
         FilterWidget.setSizePolicy(sizePolicy)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/keyframe_icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        FilterWidget.setWindowIcon(icon)
         self.verticalLayout = QtWidgets.QVBoxLayout(FilterWidget)
         self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayoutFilterParams = QtWidgets.QHBoxLayout()
@@ -51,7 +54,7 @@ class Ui_FilterWidget(object):
         self.labelFilterGlobal_batchSize.setObjectName("labelFilterGlobal_batchSize")
         self.horizontalLayoutFilterGlobal_batchSize.addWidget(self.labelFilterGlobal_batchSize)
         self.spinBoxFilterGlobal_batchSize = QtWidgets.QSpinBox(FilterWidget)
-        self.spinBoxFilterGlobal_batchSize.setMinimum(100)
+        self.spinBoxFilterGlobal_batchSize.setMinimum(50)
         self.spinBoxFilterGlobal_batchSize.setMaximum(50000)
         self.spinBoxFilterGlobal_batchSize.setSingleStep(10)
         self.spinBoxFilterGlobal_batchSize.setObjectName("spinBoxFilterGlobal_batchSize")
@@ -87,7 +90,7 @@ class Ui_FilterWidget(object):
         self.doubleSpinBoxFilterSharpness_zscore.setDecimals(2)
         self.doubleSpinBoxFilterSharpness_zscore.setMaximum(10.0)
         self.doubleSpinBoxFilterSharpness_zscore.setSingleStep(0.1)
-        self.doubleSpinBoxFilterSharpness_zscore.setProperty("value", 1.0)
+        self.doubleSpinBoxFilterSharpness_zscore.setProperty("value", 1.5)
         self.doubleSpinBoxFilterSharpness_zscore.setObjectName("doubleSpinBoxFilterSharpness_zscore")
         self.horizontalLayoutFilterSharpness_zscore.addWidget(self.doubleSpinBoxFilterSharpness_zscore)
         self.verticalLayout_2.addLayout(self.horizontalLayoutFilterSharpness_zscore)
@@ -240,7 +243,7 @@ class Ui_FilterWidget(object):
 
     def retranslateUi(self, FilterWidget):
         _translate = QtCore.QCoreApplication.translate
-        FilterWidget.setWindowTitle(_translate("FilterWidget", "GroupBox"))
+        FilterWidget.setWindowTitle(_translate("FilterWidget", "Filter"))
         FilterWidget.setTitle(_translate("FilterWidget", "Filter"))
         self.pushButtonFilterParams_load.setText(_translate("FilterWidget", "Load Filter Params"))
         self.pushButtonFilterParams_save.setText(_translate("FilterWidget", "Save Filter Params"))
@@ -263,3 +266,4 @@ class Ui_FilterWidget(object):
         self.pushButtonFilterGlobal_preview.setText(_translate("FilterWidget", "Preview"))
         self.pushButtonFilterGlobal_export.setText(_translate("FilterWidget", "Export Video"))
 
+from . import KeyframeMainWindow_rc

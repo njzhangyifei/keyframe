@@ -1,6 +1,7 @@
 import json
 import os
 import pickle
+from time import sleep
 
 import cv2
 import numpy as np
@@ -28,6 +29,11 @@ class FilterWidget(QGroupBox):
         self.cv_video_cap = cv_video_cap  # type: CVVideoCapture
         self.ui = Ui_FilterWidget()
         self.ui.setupUi(self)
+        self.setWindowTitle(os.path.basename(self.cv_video_cap.file_handle))
+        self.setTitle('Filter -  %s [%d]frames@[%d]fps' %
+                      (self.cv_video_cap.file_handle,
+                       self.cv_video_cap.get_frame_count(),
+                       self.cv_video_cap.get_frame_rate()))
         self.ui.spinBoxFilterSharpness_windowSize.setValue(self.cv_video_cap.get_frame_rate())
         self.opticalflow_feature_params = dict(maxCorners=500, qualityLevel=0.3,
                                                minDistance=7, blockSize=7)
@@ -45,12 +51,15 @@ class FilterWidget(QGroupBox):
         self.opticalflow_filter_status = ""
         self.filter_worker = None
         self.filter_worker_thread = None
-        self.filter_worker_progressdialog = None  # type: QProgressDialog
+        self.export_worker = None
+        self.export_worker_thread = None
 
+        self.worker_progressdialog = None  # type: QProgressDialog
         self.ui.pushButtonFilterGlobal_run.clicked.connect(self.pushButtonFilterGlobal_run_clicked)
         self.ui.pushButtonFilterParams_save.clicked.connect(self.pushButtonFilterParams_save_clicked)
         self.ui.pushButtonFilterParams_load.clicked.connect(self.pushButtonFilterParams_load_clicked)
         self.ui.pushButtonFilterGlobal_preview.clicked.connect(self.pushButtonFilterGlobal_preview_clicked)
+        self.ui.pushButtonFilterGlobal_export.clicked.connect(self.pushButtonFilterGlobal_export_clicked)
 
         self.playback_widget = None
         self.playback_control_widget = None
@@ -179,27 +188,27 @@ class FilterWidget(QGroupBox):
             self.opticalflow_filter = None
 
     def create_progressbar_dialog(self, title):
-        self.filter_worker_progressdialog = QProgressDialog(
+        self.worker_progressdialog = QProgressDialog(
             title, None, 0, 1000, self
         )
-        self.filter_worker_progressdialog.setWindowTitle('Filter Progress')
-        self.filter_worker_progressdialog.setMinimumWidth(500)
-        self.filter_worker_progressdialog.setWindowModality(QtCore.Qt.WindowModal)
-        self.filter_worker_progressdialog.setAutoClose(False)
-        self.filter_worker_progressdialog.setAutoReset(False)
-        self.filter_worker_progressdialog.setValue(1000)
-        self.filter_worker_progressdialog.show()
+        self.worker_progressdialog.setWindowTitle('Progress')
+        self.worker_progressdialog.setMinimumWidth(500)
+        self.worker_progressdialog.setWindowModality(QtCore.Qt.WindowModal)
+        self.worker_progressdialog.setAutoClose(False)
+        self.worker_progressdialog.setAutoReset(False)
+        self.worker_progressdialog.setValue(1000)
+        self.worker_progressdialog.show()
 
     def update_progressbar_dialog_title(self, title):
-        self.filter_worker_progressdialog.setLabelText(title)
+        self.worker_progressdialog.setLabelText(title)
         self.update_filter_status()
 
     def update_progressbar_dialog_value(self, value):
-        self.filter_worker_progressdialog.setValue(min(round(value * 1000), 1000))
+        self.worker_progressdialog.setValue(min(round(value * 1000), 1000))
 
     def destroy_progressbar_dialog(self):
-        self.filter_worker_progressdialog.close()
-        self.filter_worker_progressdialog.destroy()
+        self.worker_progressdialog.close()
+        self.worker_progressdialog.destroy()
 
     def update_filter_status(self):
         self.ui.labelFilterSharpness_status.setText("N/A" if self.sharpness_filter_status == "" else self.sharpness_filter_status)
@@ -243,8 +252,76 @@ class FilterWidget(QGroupBox):
         self.playback_widget.show()
         self.playback_control_widget.incomingFrame.connect(self.playback_widget.on_incomingFrame)
         self.playback_control_widget.show()
+        self.playback_widget.setWindowTitle('[Preview] ' + self.windowTitle())
+        self.playback_control_widget.setWindowTitle('[Control] '+self.windowTitle())
         self.closed.connect(self.playback_widget.close)
         self.closed.connect(self.playback_control_widget.close)
+
+    def pushButtonFilterGlobal_export_clicked(self):
+        if self.playback_widget:
+            self.playback_widget.close()
+            self.playback_widget = None
+        if self.playback_control_widget:
+            self.playback_control_widget.close()
+            self.playback_control_widget = None
+
+        if self.frame_acceptance_np is None:
+            msgbox = QMessageBox(self)
+            msgbox.setWindowTitle('Error')
+            msgbox.setIcon(QMessageBox.Warning)
+            msgbox.setText('Nothing to export.\nPlease run filters first!')
+            msgbox.show()
+            return
+
+        filename = QFileDialog.getSaveFileName(self, 'Export video',
+                                               os.path.dirname(os.path.abspath(self.cv_video_cap.file_handle)),
+                                               filter='*.avi')[0] # type: str
+        if not filename:
+            return
+        if not filename.lower().endswith(".avi"):
+            filename += ".avi"
+        if os.path.exists(filename):
+            msg = "Are you really sure you want to overwrite the file?\n%s" % filename
+            reply = QMessageBox.question(self, 'One sec...', msg,
+                                         QMessageBox.Yes, QMessageBox.No)
+            if reply != QMessageBox.Yes:
+                return
+
+        self.create_progressbar_dialog('Loading...')
+        print('Write to file [%s]' % filename)
+        codec = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(filename, codec, 2,
+                              (int(self.cv_video_cap.get_frame_width()),
+                               int(self.cv_video_cap.get_frame_height())))
+
+        def worker_function(progress_changed, state_changed):
+            state_changed.emit('Preparing to export...')
+            key_frames = np.where(self.frame_acceptance_np)[0]
+            num_key_frames = len(key_frames)
+            progress = 0
+            state_changed.emit('Writing frames...')
+            for i in key_frames:
+                self.cv_video_cap.set_position_frame(i)
+                frame = self.cv_video_cap.read()
+                if frame:
+                    out.write(frame.cv_mat)
+                progress += 1/num_key_frames
+                progress_changed.emit(progress)
+            state_changed.emit('Writing finished, releasing file...')
+            out.release()
+            state_changed.emit('Done! Exported to %s.' % filename)
+            print('Export Done!')
+            sleep(1)
+
+        self.export_worker_thread = QThread(self)
+        self.export_worker_thread.start()
+        self.export_worker = ProgressWorker(worker_function)
+        self.export_worker.moveToThread(self.export_worker_thread)
+        self.export_worker.progress_changed.connect(self.update_progressbar_dialog_value)
+        self.export_worker.state_changed.connect(self.update_progressbar_dialog_title)
+        self.export_worker.finished.connect(self.destroy_progressbar_dialog)
+        self.export_worker.finished.connect(self.update_filter_status)
+        self.export_worker.start.emit()
 
     def pushButtonFilterGlobal_run_clicked(self):
         self.create_progressbar_dialog('Loading...')
@@ -404,6 +481,7 @@ class FilterWidget(QGroupBox):
             progress_changed.emit(1)
             state_changed.emit('All filters done!')
             print('all filters done')
+            sleep(1)
 
         self.filter_worker_thread = QThread(self)
         self.filter_worker_thread.start()

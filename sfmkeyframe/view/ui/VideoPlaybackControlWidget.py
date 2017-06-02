@@ -11,12 +11,15 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_VideoPlaybackControlGroupBox(object):
     def setupUi(self, VideoPlaybackControlGroupBox):
         VideoPlaybackControlGroupBox.setObjectName("VideoPlaybackControlGroupBox")
-        VideoPlaybackControlGroupBox.resize(261, 232)
+        VideoPlaybackControlGroupBox.resize(261, 197)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(VideoPlaybackControlGroupBox.sizePolicy().hasHeightForWidth())
         VideoPlaybackControlGroupBox.setSizePolicy(sizePolicy)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/keyframe_icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        VideoPlaybackControlGroupBox.setWindowIcon(icon)
         self.gridLayout = QtWidgets.QGridLayout(VideoPlaybackControlGroupBox)
         self.gridLayout.setObjectName("gridLayout")
         self.horizontalSlider_positionRatio = QtWidgets.QSlider(VideoPlaybackControlGroupBox)
@@ -83,7 +86,7 @@ class Ui_VideoPlaybackControlGroupBox(object):
 
     def retranslateUi(self, VideoPlaybackControlGroupBox):
         _translate = QtCore.QCoreApplication.translate
-        VideoPlaybackControlGroupBox.setWindowTitle(_translate("VideoPlaybackControlGroupBox", "GroupBox"))
+        VideoPlaybackControlGroupBox.setWindowTitle(_translate("VideoPlaybackControlGroupBox", "Video Playback Control"))
         VideoPlaybackControlGroupBox.setTitle(_translate("VideoPlaybackControlGroupBox", "Video Playback Control"))
         self.pushButton_prevFrame.setText(_translate("VideoPlaybackControlGroupBox", "Prev Frame"))
         self.pushButton_nextFrame.setText(_translate("VideoPlaybackControlGroupBox", "Next Frame"))
@@ -92,3 +95,4 @@ class Ui_VideoPlaybackControlGroupBox(object):
         self.pushButton_nextSecond.setText(_translate("VideoPlaybackControlGroupBox", "+1 sec"))
         self.pushButton_prevSecond.setText(_translate("VideoPlaybackControlGroupBox", "- 1 sec"))
 
+from . import KeyframeMainWindow_rc

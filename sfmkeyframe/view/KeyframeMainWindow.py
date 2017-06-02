@@ -1,4 +1,5 @@
 import os
+import webbrowser
 
 from PyQt5 import QtCore
 from PyQt5.QtCore import pyqtSignal
@@ -20,6 +21,7 @@ class KeyframeMainWindow(QMainWindow):
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint |
                             QtCore.Qt.WindowMinimizeButtonHint)
         self.ui.pushButton_load.clicked.connect(self.pushButton_load_clicked)
+        self.ui.pushButton_help.clicked.connect(self.pushButton_help_clicked)
         self.ui.pushButton_exit.clicked.connect(self.close)
         self.ui.closeEvent = self.closeEvent
         self.opened_videos = {}
@@ -37,6 +39,9 @@ class KeyframeMainWindow(QMainWindow):
         cv_video_cap.release()
         widget.closed.disconnect(self.filter_widget_closed)
         del self.opened_videos[key]
+
+    def pushButton_help_clicked(self):
+        webbrowser.open_new('https://github.com/njzhangyifei/keyframe')
 
     def pushButton_load_clicked(self):
         filename = QFileDialog.getOpenFileName(self, 'Open video file',
@@ -67,5 +72,12 @@ class KeyframeMainWindow(QMainWindow):
             widget.show()
 
     def closeEvent(self, e):
+        if len(self.opened_videos) > 0:
+            msg = "Are you really sure you want to exit?\nThere are still opened filter windows."
+            reply = QMessageBox.question(self, 'One sec...', msg,
+                                         QMessageBox.Yes, QMessageBox.No)
+            if reply != QMessageBox.Yes:
+                e.ignore()
+                return
         self.closed.emit()
         super(KeyframeMainWindow, self).closeEvent(e)

@@ -12,6 +12,9 @@ class Ui_VideoPlaybackWidget(object):
     def setupUi(self, VideoPlaybackWidget):
         VideoPlaybackWidget.setObjectName("VideoPlaybackWidget")
         VideoPlaybackWidget.resize(1000, 600)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/keyframe_icon.ico"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        VideoPlaybackWidget.setWindowIcon(icon)
         self.gridLayout = QtWidgets.QGridLayout(VideoPlaybackWidget)
         self.gridLayout.setObjectName("gridLayout")
         self.groupBoxVideo = QtWidgets.QGroupBox(VideoPlaybackWidget)
@@ -51,3 +54,4 @@ class Ui_VideoPlaybackWidget(object):
         self.groupBoxVideo.setTitle(_translate("VideoPlaybackWidget", "Video Playback"))
         self.label_status.setText(_translate("VideoPlaybackWidget", "Status"))
 
+from . import KeyframeMainWindow_rc

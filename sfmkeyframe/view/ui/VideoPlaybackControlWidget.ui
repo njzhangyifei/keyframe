@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>261</width>
-    <height>232</height>
+    <height>197</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -17,7 +17,11 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>GroupBox</string>
+   <string>Video Playback Control</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="KeyframeMainWindow.qrc">
+    <normaloff>:/keyframe_icon.ico</normaloff>:/keyframe_icon.ico</iconset>
   </property>
   <property name="title">
    <string>Video Playback Control</string>
@@ -132,6 +136,8 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="KeyframeMainWindow.qrc"/>
+ </resources>
  <connections/>
 </ui>

@@ -17,7 +17,11 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>GroupBox</string>
+   <string>Filter</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="KeyframeMainWindow.qrc">
+    <normaloff>:/keyframe_icon.ico</normaloff>:/keyframe_icon.ico</iconset>
   </property>
   <property name="title">
    <string>Filter</string>
@@ -80,7 +84,7 @@
         <string>Memory dependent</string>
        </property>
        <property name="minimum">
-        <number>100</number>
+        <number>50</number>
        </property>
        <property name="maximum">
         <number>50000</number>
@@ -143,7 +147,7 @@
            <double>0.100000000000000</double>
           </property>
           <property name="value">
-           <double>1.000000000000000</double>
+           <double>1.500000000000000</double>
           </property>
          </widget>
         </item>
@@ -403,7 +407,9 @@
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="KeyframeMainWindow.qrc"/>
+ </resources>
  <connections>
   <connection>
    <sender>checkOpticalFlow_customParams</sender>

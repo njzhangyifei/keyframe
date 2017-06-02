@@ -1,19 +1,13 @@
-import logging
-
+import multiprocessing
 import sys
-from PyQt5.QtWidgets import QFileDialog, QApplication
+from PyQt5.QtWidgets import QApplication
+from sfmkeyframe.view.KeyframeMainWindow import KeyframeMainWindow
 
+# for windows compatibility
+multiprocessing.set_start_method('spawn')
+app = QApplication(sys.argv)
 
-def select_file():
-    dlg = QFileDialog()
-    dlg.setFileMode(QFileDialog.AnyFile)
-    filename, filter_type = dlg.getOpenFileName()
-    return filename
+mainWindow = KeyframeMainWindow()
+mainWindow.show()
 
-if __name__ == '__main__':
-    logging.getLogger().setLevel(logging.INFO)
-    logging.info('test')
-
-    app = QApplication(sys.argv)
-
-
+sys.exit(app.exec_())
