@@ -2,7 +2,6 @@
 import sys
 from PyQt5 import QtCore
 
-import pyqtgraph as pg
 
 import cv2
 import numpy as np

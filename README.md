@@ -1,6 +1,7 @@
 # Keyframe
-A simple tool for selecting keyframes from SfM (structure from motion) videos,
-using naive sharpness, correlation and optical flow criteria.
+`keyframe`: a simple tool for selecting keyframes from SfM (structure from motion) videos,
+using **naive sharpness, correlation and optical flow** criteria. 
+Fast but may be inaccurate as **no** geometrical estimation of the scene is done in the process.
 
 <p align="center">
   <img src="https://cloud.githubusercontent.com/assets/2238599/26716386/0b09acfe-472e-11e7-89eb-a9c1aaa24756.png" width="40%">
@@ -74,7 +75,7 @@ and we will accept the frame with value closest to the threshold.
 </p>
 
 ## tl;dr
-- (Key Frame Selection for Structure and Motion)[https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwi5l6iC1p7UAhUixFQKHaDjAPAQFggtMAA&url=http%3A%2F%2Fcv.snu.ac.kr%2Fhyunxx%2FSeminar%2F2004%2F2004-12-00%2FKeyFrameSelection.ppt&usg=AFQjCNFwFRiHpKfraWnwP0xQPUJrZb3W5A&sig2=o3dzc8nM6hoN-qNDdLtx9A&cad=rja]
+- [Key Frame Selection for Structure and Motion](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&ved=0ahUKEwi5l6iC1p7UAhUixFQKHaDjAPAQFggtMAA&url=http%3A%2F%2Fcv.snu.ac.kr%2Fhyunxx%2FSeminar%2F2004%2F2004-12-00%2FKeyFrameSelection.ppt&usg=AFQjCNFwFRiHpKfraWnwP0xQPUJrZb3W5A&sig2=o3dzc8nM6hoN-qNDdLtx9A&cad=rja)
 
 ## License
 ```
