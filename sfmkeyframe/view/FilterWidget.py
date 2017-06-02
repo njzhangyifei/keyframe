@@ -1,27 +1,28 @@
 import json
-from PyQt5 import QtCore
-import pickle
 import os
+import pickle
+
 import cv2
 import numpy as np
-from PyQt5.QtCore import pyqtSlot, QObject, pyqtSignal, QThread
+from PyQt5 import QtCore
+from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QGroupBox, QProgressDialog, QFileDialog, QMessageBox
 
-from cvutils import CVFrame, CVVideoCapture, CVSharpness, CVCorrelation, \
+from cvutils import CVVideoCapture, CVSharpness, CVCorrelation, \
     CVOpticalFlow
 from cvutils.cvarrayfilteredvideocapture import CVArrayFilteredVideoCapture
 from cvutils.cvprogresstracker import CVProgressTracker
 from sfmkeyframe.view.VideoPlaybackControlWidget import \
     VideoPlaybackControlWidget
 from sfmkeyframe.view.VideoPlaybackWidget import VideoPlaybackWidget
-from sfmkeyframe.view.VideoWidget import VideoWidget
-from utils.genericworker import GenericWorker
+from sfmkeyframe.view.ui.FilterWidget import Ui_FilterWidget
 from utils.progressworker import ProgressWorker
-from .ui.FilterWidget import Ui_FilterWidget
 
 
 # noinspection PyTypeChecker
 class FilterWidget(QGroupBox):
+    closed = pyqtSignal([str])
+
     def __init__(self, cv_video_cap):
         super(FilterWidget, self).__init__()
         self.cv_video_cap = cv_video_cap  # type: CVVideoCapture
@@ -58,6 +59,7 @@ class FilterWidget(QGroupBox):
         self.update_filter_status()
 
     def closeEvent(self, e):
+        self.closed.emit(self.cv_video_cap.file_handle)
         super(FilterWidget, self).closeEvent(e)
 
     @property
@@ -241,6 +243,8 @@ class FilterWidget(QGroupBox):
         self.playback_widget.show()
         self.playback_control_widget.incomingFrame.connect(self.playback_widget.on_incomingFrame)
         self.playback_control_widget.show()
+        self.closed.connect(self.playback_widget.close)
+        self.closed.connect(self.playback_control_widget.close)
 
     def pushButtonFilterGlobal_run_clicked(self):
         self.create_progressbar_dialog('Loading...')
